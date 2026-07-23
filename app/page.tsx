@@ -1,16 +1,8 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, Box, HeartHandshake, Calendar, BarChart2, CheckCircle2 } from "lucide-react";
-
-const heroImages = [
-  "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=1400&h=600&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=1400&h=600&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1400&h=600&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1484981138541-3d074aa97716?w=1400&h=600&fit=crop&q=80",
-];
+import Hero from "@/components/Hero";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const features = [
   { icon: Box, title: "Smart Inventory", desc: "Track expiry dates and get alerts before food goes bad." },
@@ -40,76 +32,10 @@ const stats = [
 ];
 
 export default function LandingPage() {
-  const [heroIndex, setHeroIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setHeroIndex((current) => (current + 1) % heroImages.length);
-    }, 7000);
-    return () => window.clearInterval(interval);
-  }, []);
-
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans flex flex-col">
-      {/* Header */}
-      <header className="h-16 border-b border-gray-100 flex items-center justify-between px-6 md:px-10 sticky top-0 bg-white z-30">
-        <div className="flex items-center gap-2">
-          <Image src="/saveplate-logo.png" alt="SavePlate" width={32} height={32} className="object-contain" priority />
-          <span className="font-bold text-lg tracking-tight">SavePlate</span>
-        </div>
-        <nav className="hidden md:flex items-center gap-8 text-sm text-gray-600" aria-label="Main navigation">
-          <a href="#features" className="hover:text-gray-900 transition-colors">Features</a>
-          <a href="#how-it-works" className="hover:text-gray-900 transition-colors">How It Works</a>
-          <a href="#benefits" className="hover:text-gray-900 transition-colors">Benefits</a>
-        </nav>
-        <div className="flex gap-3">
-          <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Login</Link>
-          <Link href="/register" className="text-sm font-medium bg-[#4CAF50] text-white px-4 py-2 rounded-lg hover:bg-[#3d8c40] transition-colors">Register</Link>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden border-b border-gray-100" aria-label="Hero">
-        <div className="absolute inset-0 z-0">
-          {heroImages.map((src, index) => (
-            <div
-              key={src}
-              className={`absolute inset-0 transition-all duration-[1200ms] ease-out ${index === heroIndex ? "opacity-100 scale-100" : "opacity-0 scale-[1.1]"}`}
-            >
-              <Image
-                src={src}
-                alt="SavePlate hero image"
-                fill
-                className="object-cover"
-                style={{ filter: "grayscale(90%) brightness(0.22)" }}
-                priority={index === 0}
-                sizes="100vw"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm text-white/80 mb-6 backdrop-blur-sm">
-            <span className="w-2 h-2 rounded-full bg-[#4CAF50]" aria-hidden="true" />
-            Join 10,000+ households reducing food waste
-          </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-6">
-            Stop Wasting Food.<br />
-            <span className="text-[#4CAF50]">Start Saving Money.</span>
-          </h1>
-          <p className="text-lg text-white/70 mb-10 max-w-xl mx-auto">
-            SavePlate helps you track your food inventory, donate surplus items, plan meals, and measure your environmental impact — all in one place.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-[#4CAF50] text-white font-semibold px-8 py-4 rounded-xl hover:bg-[#3d8c40] transition-colors text-base">
-              Get Started Free <ArrowRight className="w-5 h-5" aria-hidden="true" />
-            </Link>
-            <Link href="/login" className="inline-flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white font-medium px-8 py-4 rounded-xl hover:bg-white/20 transition-colors text-base backdrop-blur-sm">
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </section>
+      <Navbar />
+      <Hero />
 
       {/* Features */}
       <section id="features" className="py-20 px-6 bg-gray-50" aria-labelledby="features-heading">
@@ -183,21 +109,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-10 border-t border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Image src="/saveplate-logo.png" alt="SavePlate" width={24} height={24} className="object-contain" />
-            <span className="font-bold text-gray-900">SavePlate</span>
-          </div>
-          <nav className="flex gap-6 text-sm text-gray-500" aria-label="Footer navigation">
-            <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-gray-900 transition-colors">Terms</a>
-            <a href="#" className="hover:text-gray-900 transition-colors">Contact</a>
-          </nav>
-          <p className="text-sm text-gray-400">© 2025 SavePlate. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
