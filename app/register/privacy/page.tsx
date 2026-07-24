@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { savePrivacySettings } from "@/lib/api";
 
 interface ToggleItem {
   key: string;
@@ -31,10 +32,14 @@ export default function PrivacyOnboardingPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setIsLoading(true);
-    // Mock saving preferences
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
-    window.location.href = "/dashboard";
+    try {
+      await savePrivacySettings(preferences);
+      window.location.href = "/dashboard";
+    } catch {
+      // Error handled silently - user can retry
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (

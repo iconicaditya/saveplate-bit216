@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { registerUser } from "@/lib/api";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -50,10 +51,22 @@ export default function RegisterPage() {
     if (!validate()) return;
 
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
-
-    window.location.href = "/register/verify-email";
+    try {
+      await registerUser({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        householdSize: form.householdSize,
+      });
+      // Store user email for the verification page
+      localStorage.setItem("saveplate_pending_email", form.email.trim());
+      window.location.href = "/register/verify-email";
+    } catch (err: any) {
+      setApiError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (

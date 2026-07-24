@@ -109,12 +109,29 @@ function AppLayout(param) {
     let { children } = param;
     _s();
     const pathname = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"])();
+    const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
     var _pageMeta_pathname;
     const meta = (_pageMeta_pathname = pageMeta[pathname]) !== null && _pageMeta_pathname !== void 0 ? _pageMeta_pathname : {
         title: "SavePlate",
         breadcrumb: "Home"
     };
     const [sidebarOpen, setSidebarOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [isAuthenticated, setIsAuthenticated] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "AppLayout.useEffect": ()=>{
+            const token = localStorage.getItem("saveplate_token");
+            if (!token) {
+                router.replace("/login");
+            } else {
+                setIsAuthenticated(true);
+            }
+        }
+    }["AppLayout.useEffect"], [
+        router
+    ]);
+    if (isAuthenticated === null) {
+        return null; // Show nothing while checking auth
+    }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "flex h-screen w-full bg-gray-50 overflow-hidden text-gray-900 font-sans",
         children: [
@@ -124,7 +141,7 @@ function AppLayout(param) {
                 "aria-hidden": "true"
             }, void 0, false, {
                 fileName: "[project]/app/(app)/layout.tsx",
-                lineNumber: 45,
+                lineNumber: 60,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("aside", {
@@ -145,7 +162,7 @@ function AppLayout(param) {
                                         className: "object-contain"
                                     }, void 0, false, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 61,
+                                        lineNumber: 76,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -153,13 +170,13 @@ function AppLayout(param) {
                                         children: "SavePlate"
                                     }, void 0, false, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 62,
+                                        lineNumber: 77,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/(app)/layout.tsx",
-                                lineNumber: 60,
+                                lineNumber: 75,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -170,18 +187,18 @@ function AppLayout(param) {
                                     className: "w-5 h-5"
                                 }, void 0, false, {
                                     fileName: "[project]/app/(app)/layout.tsx",
-                                    lineNumber: 70,
+                                    lineNumber: 85,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/app/(app)/layout.tsx",
-                                lineNumber: 65,
+                                lineNumber: 80,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/(app)/layout.tsx",
-                        lineNumber: 59,
+                        lineNumber: 74,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
@@ -202,14 +219,14 @@ function AppLayout(param) {
                                                 className: "w-4 h-4 ".concat(active ? "text-[#4CAF50]" : "text-gray-500")
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 89,
+                                                lineNumber: 104,
                                                 columnNumber: 19
                                             }, this),
                                             item.label
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 88,
+                                        lineNumber: 103,
                                         columnNumber: 17
                                     }, this),
                                     item.badge && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -217,19 +234,19 @@ function AppLayout(param) {
                                         children: item.badge
                                     }, void 0, false, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 93,
+                                        lineNumber: 108,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, item.href, true, {
                                 fileName: "[project]/app/(app)/layout.tsx",
-                                lineNumber: 77,
+                                lineNumber: 92,
                                 columnNumber: 15
                             }, this);
                         })
                     }, void 0, false, {
                         fileName: "[project]/app/(app)/layout.tsx",
-                        lineNumber: 73,
+                        lineNumber: 88,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -242,25 +259,25 @@ function AppLayout(param) {
                                     className: "w-4 h-4 text-gray-500"
                                 }, void 0, false, {
                                     fileName: "[project]/app/(app)/layout.tsx",
-                                    lineNumber: 106,
+                                    lineNumber: 121,
                                     columnNumber: 13
                                 }, this),
                                 "Logout"
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/(app)/layout.tsx",
-                            lineNumber: 102,
+                            lineNumber: 117,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/(app)/layout.tsx",
-                        lineNumber: 101,
+                        lineNumber: 116,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/(app)/layout.tsx",
-                lineNumber: 53,
+                lineNumber: 68,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -280,12 +297,12 @@ function AppLayout(param) {
                                             className: "w-5 h-5"
                                         }, void 0, false, {
                                             fileName: "[project]/app/(app)/layout.tsx",
-                                            lineNumber: 123,
+                                            lineNumber: 138,
                                             columnNumber: 15
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 118,
+                                        lineNumber: 133,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -296,7 +313,7 @@ function AppLayout(param) {
                                                 children: meta.title
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 126,
+                                                lineNumber: 141,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -304,19 +321,19 @@ function AppLayout(param) {
                                                 children: meta.breadcrumb
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 127,
+                                                lineNumber: 142,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 125,
+                                        lineNumber: 140,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/(app)/layout.tsx",
-                                lineNumber: 117,
+                                lineNumber: 132,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -329,7 +346,7 @@ function AppLayout(param) {
                                                 className: "absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 133,
+                                                lineNumber: 148,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -338,13 +355,13 @@ function AppLayout(param) {
                                                 "aria-label": "Search"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 134,
+                                                lineNumber: 149,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 132,
+                                        lineNumber: 147,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -356,20 +373,20 @@ function AppLayout(param) {
                                                 className: "w-5 h-5"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 141,
+                                                lineNumber: 156,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                 className: "absolute top-0 right-0 w-2 h-2 bg-[#4CAF50] rounded-full border border-white"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 142,
+                                                lineNumber: 157,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 140,
+                                        lineNumber: 155,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -383,7 +400,7 @@ function AppLayout(param) {
                                                         children: "Aaditya C."
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/(app)/layout.tsx",
-                                                        lineNumber: 146,
+                                                        lineNumber: 161,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -391,13 +408,13 @@ function AppLayout(param) {
                                                         children: "Household"
                                                     }, void 0, false, {
                                                         fileName: "[project]/app/(app)/layout.tsx",
-                                                        lineNumber: 147,
+                                                        lineNumber: 162,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 145,
+                                                lineNumber: 160,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -410,30 +427,30 @@ function AppLayout(param) {
                                                     className: "object-cover object-top"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/(app)/layout.tsx",
-                                                    lineNumber: 150,
+                                                    lineNumber: 165,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(app)/layout.tsx",
-                                                lineNumber: 149,
+                                                lineNumber: 164,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/(app)/layout.tsx",
-                                        lineNumber: 144,
+                                        lineNumber: 159,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/(app)/layout.tsx",
-                                lineNumber: 131,
+                                lineNumber: 146,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/(app)/layout.tsx",
-                        lineNumber: 115,
+                        lineNumber: 130,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -443,30 +460,31 @@ function AppLayout(param) {
                             children: children
                         }, void 0, false, {
                             fileName: "[project]/app/(app)/layout.tsx",
-                            lineNumber: 158,
+                            lineNumber: 173,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/app/(app)/layout.tsx",
-                        lineNumber: 157,
+                        lineNumber: 172,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/(app)/layout.tsx",
-                lineNumber: 113,
+                lineNumber: 128,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/(app)/layout.tsx",
-        lineNumber: 42,
+        lineNumber: 57,
         columnNumber: 5
     }, this);
 }
-_s(AppLayout, "piF9xx5u6iO3xOPXW98RQQJ/6ng=", false, function() {
+_s(AppLayout, "SoVTmzTAWYS15HABrZ0ln8uBkzo=", false, function() {
     return [
-        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"]
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"],
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
     ];
 });
 _c = AppLayout;

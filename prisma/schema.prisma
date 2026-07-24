@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String   @unique
+  password      String
+  householdSize String
+  emailVerified Boolean  @default(false)
+  twoFAEnabled  Boolean  @default(false)
+  twoFASecret   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  verificationTokens VerificationToken[]
+  privacySettings    PrivacySettings?
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String
+  type      String   // "email_verification" | "2fa"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  @@index([email, type])
+  @@index([token])
+}
+
+model PrivacySettings {
+  id              String  @id @default(uuid())
+  publicProfile   Boolean @default(true)
+  showDonations   Boolean @default(true)
+  marketingEmails Boolean @default(false)
+  shareImpact     Boolean @default(true)
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

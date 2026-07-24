@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, List, Search, Calendar, BarChart2, Bell, Settings, LogOut, Menu, X,
 } from "lucide-react";
@@ -35,8 +35,23 @@ function isActive(href: string, pathname: string): boolean {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const meta = pageMeta[pathname] ?? { title: "SavePlate", breadcrumb: "Home" };
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("saveplate_token");
+    if (!token) {
+      router.replace("/login");
+    } else {
+      setIsAuthenticated(true);
+    }
+  }, [router]);
+
+  if (isAuthenticated === null) {
+    return null; // Show nothing while checking auth
+  }
 
   return (
     <div className="flex h-screen w-full bg-gray-50 overflow-hidden text-gray-900 font-sans">

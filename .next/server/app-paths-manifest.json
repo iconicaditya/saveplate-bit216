@@ -1,7 +1,13 @@
 {
-  "/(app)/browse/page": "app/(app)/browse/page.js",
   "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
-  "/(app)/inventory/page": "app/(app)/inventory/page.js",
-  "/(app)/settings/page": "app/(app)/settings/page.js",
-  "/page": "app/page.js"
+  "/(app)/notifications/page": "app/(app)/notifications/page.js",
+  "/api/auth/2fa/setup/route": "app/api/auth/2fa/setup/route.js",
+  "/api/auth/2fa/verify/route": "app/api/auth/2fa/verify/route.js",
+  "/api/auth/privacy/route": "app/api/auth/privacy/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/auth/verify-email/route": "app/api/auth/verify-email/route.js",
+  "/register/2fa-setup/page": "app/register/2fa-setup/page.js",
+  "/register/page": "app/register/page.js",
+  "/register/privacy/page": "app/register/privacy/page.js",
+  "/register/verify-email/page": "app/register/verify-email/page.js"
 }

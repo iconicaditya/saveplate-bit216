@@ -1,13 +1,21 @@
 "use client";
 
-import { useState, useRef, FormEvent, KeyboardEvent, ClipboardEvent } from "react";
+import { useState, useRef, FormEvent, KeyboardEvent, ClipboardEvent, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle2 } from "lucide-react";
+import { verifyEmail, resendVerification } from "@/lib/api";
 
 export default function VerifyEmailPage() {
-  // In a real app this would come from the registration state / URL params
-  const email = "aaditya@example.com";
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    // Get email from localStorage (set during registration)
+    const storedEmail = localStorage.getItem("saveplate_pending_email");
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
+  }, []);
 
   const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -67,26 +75,32 @@ export default function VerifyEmailPage() {
     }
 
     setIsLoading(true);
-    // Mock verification — accepts any 6-digit code
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
-
-    // Simulate success
-    setIsVerified(true);
-    setTimeout(() => {
-      window.location.href = "/register/2fa-setup";
-    }, 1200);
+    try {
+      await verifyEmail(email, fullCode);
+      setIsVerified(true);
+      setTimeout(() => {
+        window.location.href = "/register/2fa-setup";
+      }, 1200);
+    } catch (err: any) {
+      setError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleResend() {
     setResendMessage("");
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setIsLoading(false);
-    setResendMessage("A new verification code has been sent to your email.");
-    // Clear existing code
-    setCode(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
+    try {
+      await resendVerification(email);
+      setResendMessage("A new verification code has been sent to your email.");
+      setCode(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch (err: any) {
+      setError(err.message || "Failed to resend code.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   if (isVerified) {

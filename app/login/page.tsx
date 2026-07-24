@@ -3,10 +3,13 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { loginUser } from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [twoFACode, setTwoFACode] = useState("");
+  const [requiresTwoFA, setRequiresTwoFA] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState("");
@@ -30,16 +33,30 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setApiError("");
-    if (!validate()) return;
+    if (!requiresTwoFA && !validate()) return;
 
     setIsLoading(true);
-    // Simulate a brief network delay for frontend demo purposes
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
+    try {
+      const code = requiresTwoFA ? twoFACode : undefined;
+      const data = await loginUser(email.trim(), password, code as undefined);
 
-    // In production, this would call an API endpoint
-    // For now we just redirect to dashboard (the Link handles it)
-    window.location.href = "/dashboard";
+      if (data.requiresTwoFA) {
+        setRequiresTwoFA(true);
+        setApiError("");
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } catch (err: any) {
+      setApiError(err.message || "Login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleBackToLogin() {
+    setRequiresTwoFA(false);
+    setTwoFACode("");
+    setApiError("");
   }
 
   return (
@@ -51,7 +68,7 @@ export default function LoginPage() {
             <span className="font-bold text-xl tracking-tight text-gray-900">SavePlate</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-500 mt-1">Sign in to your account</p>
+          <p className="text-gray-500 mt-1">{requiresTwoFA ? "Enter your authentication code" : "Sign in to your account"}</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
@@ -65,72 +82,99 @@ export default function LoginPage() {
           )}
 
           <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-            <div className="space-y-1.5">
-              <label htmlFor="login-email" className="text-sm font-semibold text-gray-700">
-                Email
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((p) => ({ ...p, email: undefined })); }}
-                className={`w-full h-11 px-4 rounded-xl border bg-gray-50 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50] ${
-                  errors.email ? "border-red-400 bg-red-50" : "border-gray-200"
-                }`}
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? "login-email-error" : undefined}
-                autoComplete="email"
-              />
-              {errors.email && (
-                <p id="login-email-error" className="text-xs text-red-600 mt-1" role="alert">
-                  {errors.email}
-                </p>
-              )}
-            </div>
+            {!requiresTwoFA ? (
+              <>
+                <div className="space-y-1.5">
+                  <label htmlFor="login-email" className="text-sm font-semibold text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    id="login-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((p) => ({ ...p, email: undefined })); }}
+                    className={`w-full h-11 px-4 rounded-xl border bg-gray-50 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50] ${
+                      errors.email ? "border-red-400 bg-red-50" : "border-gray-200"
+                    }`}
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? "login-email-error" : undefined}
+                    autoComplete="email"
+                  />
+                  {errors.email && (
+                    <p id="login-email-error" className="text-xs text-red-600 mt-1" role="alert">
+                      {errors.email}
+                    </p>
+                  )}
+                </div>
 
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label htmlFor="login-password" className="text-sm font-semibold text-gray-700">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  className="text-sm text-[#4CAF50] hover:text-[#3d8c40] transition-colors bg-transparent border-none p-0 cursor-pointer font-medium"
-                >
-                  Forgot?
-                </button>
-              </div>
-              <input
-                id="login-password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((p) => ({ ...p, password: undefined })); }}
-                className={`w-full h-11 px-4 rounded-xl border bg-gray-50 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50] ${
-                  errors.password ? "border-red-400 bg-red-50" : "border-gray-200"
-                }`}
-                aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? "login-password-error" : undefined}
-                autoComplete="current-password"
-              />
-              {errors.password && (
-                <p id="login-password-error" className="text-xs text-red-600 mt-1" role="alert">
-                  {errors.password}
-                </p>
-              )}
-            </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label htmlFor="login-password" className="text-sm font-semibold text-gray-700">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      className="text-sm text-[#4CAF50] hover:text-[#3d8c40] transition-colors bg-transparent border-none p-0 cursor-pointer font-medium"
+                    >
+                      Forgot?
+                    </button>
+                  </div>
+                  <input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((p) => ({ ...p, password: undefined })); }}
+                    className={`w-full h-11 px-4 rounded-xl border bg-gray-50 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50] ${
+                      errors.password ? "border-red-400 bg-red-50" : "border-gray-200"
+                    }`}
+                    aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? "login-password-error" : undefined}
+                    autoComplete="current-password"
+                  />
+                  {errors.password && (
+                    <p id="login-password-error" className="text-xs text-red-600 mt-1" role="alert">
+                      {errors.password}
+                    </p>
+                  )}
+                </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="remember"
-                className="rounded border-gray-300 text-[#4CAF50] focus:ring-[#4CAF50]"
-              />
-              <label htmlFor="remember" className="text-sm text-gray-600 select-none">
-                Remember me
-              </label>
-            </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    className="rounded border-gray-300 text-[#4CAF50] focus:ring-[#4CAF50]"
+                  />
+                  <label htmlFor="remember" className="text-sm text-gray-600 select-none">
+                    Remember me
+                  </label>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg">
+                  Two-factor authentication is enabled on your account. Please enter the 6-digit code from your authenticator app.
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="login-2fa" className="text-sm font-semibold text-gray-700">
+                    Authentication Code
+                  </label>
+                  <input
+                    id="login-2fa"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="000000"
+                    maxLength={6}
+                    value={twoFACode}
+                    onChange={(e) => { setTwoFACode(e.target.value.replace(/\D/g, "").slice(0, 6)); setApiError(""); }}
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-center tracking-[0.5em] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50]"
+                    aria-label="Two-factor authentication code"
+                  />
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
@@ -140,13 +184,25 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <svg className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" viewBox="0 0 24 24" aria-hidden="true" />
-                  Signing in…
+                  {requiresTwoFA ? "Verifying…" : "Signing in…"}
                 </>
               ) : (
-                "Login"
+                requiresTwoFA ? "Verify & Login" : "Login"
               )}
             </button>
           </form>
+
+          {requiresTwoFA && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={handleBackToLogin}
+                className="text-sm text-gray-500 hover:text-gray-700 font-medium bg-transparent border-none p-0 cursor-pointer transition-colors"
+              >
+                Back to login
+              </button>
+            </div>
+          )}
 
           <div className="mt-6 text-center text-sm text-gray-500">
             No account?{" "}

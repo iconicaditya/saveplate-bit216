@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, User, Shield, Bell, Lock, Camera, Copy, Check, Smartphone, ShieldOff } from "lucide-react";
+import { setup2FA, verify2FA, disable2FA } from "@/lib/api";
 
 type Tab = "profile" | "privacy" | "notifications" | "security";
 
@@ -108,8 +109,6 @@ export default function SettingsPage() {
   }, []);
 
   // ─── 2FA State & Handlers ─────────────────────────────────
-  const MOCK_2FA_SECRET = "JBSWY3DPEHPK3PXP";
-
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
   const [show2FASetup, setShow2FASetup] = useState(false);
   const [twoFAOTP, setTwoFAOTP] = useState("");
@@ -118,23 +117,26 @@ export default function SettingsPage() {
   const [twoFASuccessMessage, setTwoFASuccessMessage] = useState("");
   const [copied2FA, setCopied2FA] = useState(false);
   const [settingsQrDataUrl, setSettingsQrDataUrl] = useState<string | null>(null);
+  const [current2FASecret, setCurrent2FASecret] = useState("");
 
-  // Generate real QR code when 2FA setup panel opens
+  // Fetch 2FA setup from backend when panel opens
   useEffect(() => {
     if (show2FASetup) {
-      const otpauth = `otpauth://totp/SavePlate:aaditya@example.com?secret=${MOCK_2FA_SECRET}&issuer=SavePlate&algorithm=SHA1&digits=6&period=30`;
-      import("qrcode").then((QRCode) => {
-        QRCode.toDataURL(otpauth, {
-          width: 160,
-          margin: 2,
-          color: { dark: "#1f2937", light: "#ffffff" },
-        }).then(setSettingsQrDataUrl);
-      });
+      async function fetch2FASetup() {
+        try {
+          const data = await setup2FA();
+          setCurrent2FASecret(data.secret);
+          setSettingsQrDataUrl(data.qrCode);
+        } catch (err: any) {
+          setTwoFAError(err.message || "Failed to load 2FA setup.");
+        }
+      }
+      fetch2FASetup();
     }
   }, [show2FASetup]);
 
   function handleCopy2FA() {
-    navigator.clipboard.writeText(MOCK_2FA_SECRET).catch(() => {});
+    navigator.clipboard.writeText(current2FASecret).catch(() => {});
     setCopied2FA(true);
     setTimeout(() => setCopied2FA(false), 2000);
   }
@@ -147,24 +149,34 @@ export default function SettingsPage() {
       return;
     }
     setTwoFAOTPLoading(true);
-    // Mock verification
-    await new Promise((r) => setTimeout(r, 800));
-    setTwoFAOTPLoading(false);
-
-    // Accept any 6-digit code
-    setTwoFAEnabled(true);
-    setShow2FASetup(false);
-    setTwoFASuccessMessage("");
-    setTwoFAOTP("");
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 3000);
+    try {
+      await verify2FA(twoFAOTP);
+      setTwoFAEnabled(true);
+      setShow2FASetup(false);
+      setTwoFAOTP("");
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 3000);
+    } catch (err: any) {
+      setTwoFAError(err.message || "Verification failed.");
+    } finally {
+      setTwoFAOTPLoading(false);
+    }
   }
 
-  function handleDisable2FA() {
-    setTwoFAEnabled(false);
+  async function handleDisable2FA() {
+    setTwoFAError("");
     setTwoFASuccessMessage("");
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 3000);
+    try {
+      // Prompt for password to disable 2FA
+      const password = prompt("Enter your password to disable 2FA:");
+      if (!password) return;
+      await disable2FA(password);
+      setTwoFAEnabled(false);
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 3000);
+    } catch (err: any) {
+      setTwoFAError(err.message || "Failed to disable 2FA.");
+    }
   }
 
   return (
@@ -411,7 +423,7 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200">
                   <code className="text-xs font-mono font-bold text-gray-900 tracking-wider select-all">
-                    {MOCK_2FA_SECRET.match(/.{1,4}/g)?.join(" ") ?? MOCK_2FA_SECRET}
+                    {current2FASecret.match(/.{1,4}/g)?.join(" ") ?? current2FASecret}
                   </code>
                   <button
                     type="button"

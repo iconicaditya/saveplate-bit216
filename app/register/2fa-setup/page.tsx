@@ -4,13 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle2, Copy, Check } from "lucide-react";
-
-const MOCK_SECRET = "JBSWY3DPEHPK3PXP";
-
-// otpauth URL for authenticator apps
-function getOtpAuthUrl(secret: string, email: string) {
-  return `otpauth://totp/SavePlate:${email}?secret=${secret}&issuer=SavePlate&algorithm=SHA1&digits=6&period=30`;
-}
+import { setup2FA, verify2FA } from "@/lib/api";
 
 export default function TwoFactorSetupPage() {
   const [otp, setOtp] = useState("");
@@ -19,19 +13,21 @@ export default function TwoFactorSetupPage() {
   const [isConfigured, setIsConfigured] = useState(false);
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-
-  const email = "aaditya@example.com";
+  const [secret, setSecret] = useState("");
 
   useEffect(() => {
-    // Generate QR code on the client to avoid SSR issues
-    import("qrcode").then((QRCode) => {
-      QRCode.toDataURL(getOtpAuthUrl(MOCK_SECRET, email), {
-        width: 200,
-        margin: 2,
-        color: { dark: "#1f2937", light: "#ffffff" },
-      }).then(setQrDataUrl);
-    });
-  }, [email]);
+    // Fetch 2FA setup data from backend
+    async function fetchSetup() {
+      try {
+        const data = await setup2FA();
+        setSecret(data.secret);
+        setQrDataUrl(data.qrCode);
+      } catch (err: any) {
+        setError(err.message || "Failed to load 2FA setup.");
+      }
+    }
+    fetchSetup();
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -43,14 +39,17 @@ export default function TwoFactorSetupPage() {
     }
 
     setIsLoading(true);
-    // Mock verification — accepts any 6-digit code
-    await new Promise((r) => setTimeout(r, 800));
-    setIsLoading(false);
-
-    setIsConfigured(true);
-    setTimeout(() => {
-      window.location.href = "/register/privacy";
-    }, 1200);
+    try {
+      await verify2FA(otp);
+      setIsConfigured(true);
+      setTimeout(() => {
+        window.location.href = "/register/privacy";
+      }, 1200);
+    } catch (err: any) {
+      setError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function handleSkip() {
@@ -58,7 +57,7 @@ export default function TwoFactorSetupPage() {
   }
 
   function handleCopy() {
-    navigator.clipboard.writeText(MOCK_SECRET).catch(() => {});
+    navigator.clipboard.writeText(secret).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -100,7 +99,7 @@ export default function TwoFactorSetupPage() {
             </div>
           )}
 
-          {/* Real QR Code */}
+          {/* Real QR Code from backend */}
           <div className="flex justify-center mb-6">
             {qrDataUrl ? (
               <img
@@ -119,22 +118,24 @@ export default function TwoFactorSetupPage() {
           </div>
 
           {/* Secret Key */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Or enter this key manually</p>
-            <div className="flex items-center justify-between gap-2">
-              <code className="text-sm font-mono font-bold text-gray-900 tracking-wider select-all">
-                {MOCK_SECRET.match(/.{1,4}/g)?.join(" ") ?? MOCK_SECRET}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
-                aria-label={copied ? "Copied" : "Copy secret key"}
-              >
-                {copied ? <Check className="w-4 h-4 text-[#4CAF50]" /> : <Copy className="w-4 h-4" />}
-              </button>
+          {secret && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Or enter this key manually</p>
+              <div className="flex items-center justify-between gap-2">
+                <code className="text-sm font-mono font-bold text-gray-900 tracking-wider select-all">
+                  {secret.match(/.{1,4}/g)?.join(" ") ?? secret}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+                  aria-label={copied ? "Copied" : "Copy secret key"}
+                >
+                  {copied ? <Check className="w-4 h-4 text-[#4CAF50]" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* OTP Confirmation */}
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
