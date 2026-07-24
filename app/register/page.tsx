@@ -53,7 +53,7 @@ export default function RegisterPage() {
     await new Promise((r) => setTimeout(r, 800));
     setIsLoading(false);
 
-    window.location.href = "/dashboard";
+    window.location.href = "/register/verify-email";
   }
 
   return (
