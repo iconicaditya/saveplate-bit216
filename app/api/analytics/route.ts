@@ -56,6 +56,10 @@ export async function GET(req: NextRequest) {
       categoryGroups,
       activityItems,
       donationActivity,
+      upcomingExpiry,
+      recentNotifications,
+      recentDonations,
+      draftMeals,
     ] = await Promise.all([
       prisma.foodItem.count({ where: { userId: user.id, ...itemCategoryFilter, createdAt: dateWindow } }),
       prisma.foodItem.count({ where: { userId: user.id, ...itemCategoryFilter, createdAt: previousWindow } }),
@@ -76,6 +80,30 @@ export async function GET(req: NextRequest) {
       }),
       prisma.foodItem.findMany({ where: { userId: user.id, ...itemCategoryFilter, createdAt: dateWindow }, select: { createdAt: true } }),
       prisma.donation.findMany({ where: { donorId: user.id, status: "COMPLETED", completedAt: dateWindow, ...(category === "All" ? {} : { foodItem: { category } }) }, select: { completedAt: true } }),
+      prisma.foodItem.findMany({
+        where: { userId: user.id, status: { notIn: ["Donated", "Used", "Expired"] }, expiryDate: { gte: startOfDay(new Date()) } },
+        select: { id: true, name: true, storage: true, expiryDate: true, status: true },
+        orderBy: { expiryDate: "asc" },
+        take: 5,
+      }),
+      prisma.notification.findMany({
+        where: { userId: user.id },
+        select: { id: true, type: true, title: true, message: true, read: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      prisma.donation.findMany({
+        where: { OR: [{ donorId: user.id }, { claimantId: user.id }] },
+        select: { id: true, status: true, updatedAt: true, donorId: true, foodItem: { select: { name: true } } },
+        orderBy: { updatedAt: "desc" },
+        take: 5,
+      }),
+      prisma.plannedMeal.findMany({
+        where: { mealPlan: { userId: user.id, status: "DRAFT" } },
+        select: { id: true, name: true, date: true, mealType: true },
+        orderBy: { date: "asc" },
+        take: 3,
+      }),
     ]);
 
     const bucketCount = days <= 30 ? Math.min(days, 14) : 12;
@@ -105,6 +133,13 @@ export async function GET(req: NextRequest) {
         activeListings,
         completedDonations: donatedItems,
         completedMeals,
+        upcomingExpiry,
+        recentNotifications,
+        recentDonations: recentDonations.map((donation) => ({
+          ...donation,
+          role: donation.donorId === user.id ? "donor" : "receiver",
+        })),
+        draftMeals,
       },
       metrics: {
         foodAdded: { value: addedItems, change: percentChange(addedItems, previousAddedItems), label: "inventory items added" },
