@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import { Search, Plus, Eye, Edit2, CheckSquare, HeartHandshake, Trash2, AlertCircle, X, ImageOff } from "lucide-react";
-import { getInventoryItems, createFoodItem, updateFoodItem, deleteFoodItem } from "@/lib/api";
+import { getInventoryItems, createFoodItem, updateFoodItem, deleteFoodItem, publishDonation } from "@/lib/api";
 
 interface FoodItem {
   id: string;
@@ -196,7 +196,12 @@ export default function InventoryPage() {
     }
     setIsDonating(true);
     try {
-      await deleteFoodItem(donateTarget.id);
+      await publishDonation({
+        foodItemId: donateTarget.id,
+        pickupLocation: donateForm.pickupLocation,
+        availability: donateForm.availability,
+        notes: donateForm.notes,
+      });
       setDonateSuccess(true);
       fetchItems();
       setTimeout(() => {

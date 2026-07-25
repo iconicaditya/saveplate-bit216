@@ -4,16 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, List, Search, Calendar, BarChart2, Bell, Settings, LogOut, Menu, X,
+  LayoutDashboard, List, Search, Calendar, BarChart2, Bell, Settings, LogOut, Menu, X, HeartHandshake,
 } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/inventory", icon: List, label: "Food Inventory" },
   { href: "/browse", icon: Search, label: "Browse Food" },
+  { href: "/donations", icon: HeartHandshake, label: "My Donations" },
   { href: "/meal-planner", icon: Calendar, label: "Meal Planner" },
   { href: "/analytics", icon: BarChart2, label: "Analytics" },
-  { href: "/notifications", icon: Bell, label: "Notifications", badge: 3 },
+  { href: "/notifications", icon: Bell, label: "Notifications" },
   { href: "/settings", icon: Settings, label: "Account Settings" },
 ];
 
@@ -21,6 +22,7 @@ const pageMeta: Record<string, { title: string; breadcrumb: string }> = {
   "/dashboard": { title: "Dashboard", breadcrumb: "Home / Dashboard" },
   "/inventory": { title: "Food Inventory", breadcrumb: "Home / Food Inventory" },
   "/browse": { title: "Browse Donations", breadcrumb: "Home / Browse Food" },
+  "/donations": { title: "My Donations", breadcrumb: "Home / My Donations" },
   "/browse/matching": { title: "Donation Matching", breadcrumb: "Home / Donations / Matching" },
   "/meal-planner": { title: "Meal Planner", breadcrumb: "Home / Meal Planner" },
   "/analytics": { title: "Analytics", breadcrumb: "Home / Analytics" },
@@ -39,6 +41,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const meta = pageMeta[pathname] ?? { title: "SavePlate", breadcrumb: "Home" };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [profile, setProfile] = useState<{ firstName: string; lastName: string; location?: string | null; profileImageUrl?: string | null } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("saveplate_token");
@@ -46,6 +50,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     } else {
       setIsAuthenticated(true);
+      const stored = localStorage.getItem("saveplate_user");
+      if (stored) {
+        try { setProfile(JSON.parse(stored)); } catch { /* Fetching below provides the canonical profile. */ }
+      }
+      fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => response.ok ? response.json() : null)
+        .then((data) => {
+          if (data?.user) {
+            setProfile(data.user);
+            localStorage.setItem("saveplate_user", JSON.stringify(data.user));
+          }
+        })
+        .catch(() => { /* Keep cached user data if the network is temporarily unavailable. */ });
+      const loadUnreadCount = () => fetch("/api/notifications?filter=unread", { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => response.ok ? response.json() : null)
+        .then((data) => setUnreadCount(Number(data?.unreadCount) || 0))
+        .catch(() => {});
+      loadUnreadCount();
+      const interval = window.setInterval(loadUnreadCount, 30000);
+      window.addEventListener("saveplate:notifications-changed", loadUnreadCount);
+      return () => { window.clearInterval(interval); window.removeEventListener("saveplate:notifications-changed", loadUnreadCount); };
     }
   }, [router]);
 
@@ -104,9 +129,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <item.icon className={`w-4 h-4 ${active ? "text-[#4CAF50]" : "text-gray-500"}`} />
                   {item.label}
                 </div>
-                {item.badge && (
+                {item.href === "/notifications" && unreadCount > 0 && (
                   <span className="bg-gray-200 text-gray-700 text-xs px-1.5 min-w-[20px] h-5 rounded flex items-center justify-center">
-                    {item.badge}
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </Link>
@@ -154,15 +179,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <Link href="/notifications" className="relative text-gray-500 hover:text-gray-700" aria-label="Notifications">
               <Bell className="w-5 h-5" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-[#4CAF50] rounded-full border border-white" />
+              {unreadCount > 0 && <span className="absolute -right-2 -top-2 min-w-4 h-4 px-1 bg-[#4CAF50] text-white text-[10px] rounded-full border border-white flex items-center justify-center">{unreadCount > 99 ? "99+" : unreadCount}</span>}
             </Link>
             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
               <div className="text-right hidden sm:block whitespace-nowrap">
-                <p className="text-sm font-medium text-gray-700 leading-none">Aaditya C.</p>
-                <p className="text-xs text-gray-500 mt-1">Household</p>
+                <p className="text-sm font-medium text-gray-700 leading-none">{profile ? `${profile.firstName} ${profile.lastName?.slice(0, 1)}.` : "Loading…"}</p>
+                <p className="text-xs text-gray-500 mt-1">{profile?.location || "Household"}</p>
               </div>
-              <div className="w-8 h-8 rounded-full border border-gray-200 overflow-hidden shrink-0">
-                <Image src="/aaditya-profile.jpg" alt="Aaditya Chaudhary" width={32} height={32} className="object-cover object-top" />
+              <div className="w-8 h-8 rounded-full border border-gray-200 overflow-hidden shrink-0 bg-[#E8F5E9] flex items-center justify-center">
+                {profile?.profileImageUrl ? <img src={profile.profileImageUrl} alt={`${profile.firstName} ${profile.lastName}`} className="w-full h-full object-cover" /> : <span className="text-xs font-semibold text-[#2E7D32]">{profile ? `${profile.firstName[0] || ""}${profile.lastName[0] || ""}`.toUpperCase() : "?"}</span>}
               </div>
             </div>
           </div>

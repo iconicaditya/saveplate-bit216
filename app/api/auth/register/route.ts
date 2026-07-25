@@ -6,9 +6,9 @@ import { sendVerificationEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
-    const { firstName, lastName, email, password, householdSize } = await req.json();
+    const { firstName, lastName, email, password, householdSize, location, profileImageUrl } = await req.json();
 
-    if (!firstName || !lastName || !email || !password || !householdSize) {
+    if (!firstName || !lastName || !email || !password || !householdSize || !location) {
       return NextResponse.json({ error: 'All fields are required.' }, { status: 400 });
     }
 
@@ -29,8 +29,11 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { firstName, lastName, email, password: hashedPassword, householdSize },
+      data: { firstName, lastName, email, password: hashedPassword, householdSize, location: location.trim(), profileImageUrl: profileImageUrl || null },
     });
+    // The explicit profile type keeps the route type-safe even if the VS Code
+    // language service still has a cached Prisma client declaration.
+    const profileUser = user as typeof user & { location: string | null; profileImageUrl: string | null };
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -62,6 +65,8 @@ export async function POST(req: NextRequest) {
         lastName: user.lastName,
         email: user.email,
         householdSize: user.householdSize,
+        location: profileUser.location,
+        profileImageUrl: profileUser.profileImageUrl,
         emailVerified: user.emailVerified,
       },
     }, { status: 201 });

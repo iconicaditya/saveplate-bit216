@@ -14,12 +14,17 @@ model User {
   email              String              @unique
   password           String
   householdSize      String
+  location           String?
+  profileImageUrl    String?
   emailVerified      Boolean             @default(false)
   twoFAEnabled       Boolean             @default(false)
   twoFASecret        String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   foodItems          FoodItem[]
+  donations          Donation[]          @relation("DonorDonations")
+  claimedDonations   Donation[]          @relation("ClaimedDonations")
+  mealPlans          MealPlan[]
   notifications      Notification[]
   privacySettings    PrivacySettings?
   verificationTokens VerificationToken[]
@@ -51,24 +56,96 @@ model PrivacySettings {
 }
 
 model FoodItem {
-  id         String   @id @default(uuid())
-  name       String
-  category   String
-  quantity   String
-  unit       String   @default("items")
-  expiryDate DateTime
-  storage    String   @default("Fridge")
-  status     String   @default("Fresh")
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  userId     String
-  imageUrl   String?
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String           @id @default(uuid())
+  name             String
+  category         String
+  quantity         String
+  reservedQuantity Decimal          @default(0) @db.Decimal(10, 2)
+  unit             String           @default("items")
+  expiryDate       DateTime
+  storage          String           @default("Fridge")
+  status           String           @default("Fresh")
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  userId           String
+  imageUrl         String?
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  donation         Donation?
+  allocations      MealIngredient[]
 
   @@index([userId])
   @@index([userId, status])
   @@index([userId, expiryDate])
+}
+
+model Donation {
+  id             String    @id @default(uuid())
+  foodItemId     String    @unique
+  donorId        String
+  claimantId     String?
+  pickupLocation String
+  availability   String
+  notes          String?
+  status         String    @default("AVAILABLE")
+  claimedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  foodItem       FoodItem  @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  donor          User      @relation("DonorDonations", fields: [donorId], references: [id], onDelete: Cascade)
+  claimant       User?     @relation("ClaimedDonations", fields: [claimantId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([donorId, status])
+  @@index([claimantId, status])
+}
+
+model MealPlan {
+  id          String        @id @default(uuid())
+  userId      String
+  weekStart   DateTime      @db.Date
+  status      String        @default("DRAFT")
+  confirmedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals       PlannedMeal[]
+
+  @@unique([userId, weekStart])
+  @@index([userId, status])
+}
+
+model PlannedMeal {
+  id          String           @id @default(uuid())
+  mealPlanId  String
+  date        DateTime         @db.Date
+  mealType    String
+  name        String
+  cookingTime Int?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  mealPlan    MealPlan         @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  ingredients MealIngredient[]
+
+  @@unique([mealPlanId, date, mealType])
+  @@index([mealPlanId, date])
+}
+
+model MealIngredient {
+  id            String      @id @default(uuid())
+  plannedMealId String
+  foodItemId    String
+  quantity      Decimal     @db.Decimal(10, 2)
+  unit          String
+  createdAt     DateTime    @default(now())
+  plannedMeal   PlannedMeal @relation(fields: [plannedMealId], references: [id], onDelete: Cascade)
+  foodItem      FoodItem    @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+
+  @@unique([plannedMealId, foodItemId])
+  @@index([foodItemId])
 }
 
 model Notification {

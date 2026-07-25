@@ -9,17 +9,20 @@ cloudinary.config({
 });
 
 export async function POST(req: NextRequest) {
-  const user = authenticateToken(req);
-  if (!user) {
-    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  }
-
   try {
     const formData = await req.formData();
     const file = formData.get('image') as File | null;
+    const purpose = formData.get('purpose');
+    const user = authenticateToken(req);
+    if (!user && purpose !== 'profile-registration') {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
 
     if (!file) {
       return NextResponse.json({ error: 'No image file provided.' }, { status: 400 });
+    }
+    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Use an image smaller than 5 MB.' }, { status: 400 });
     }
 
     // Convert file to base64
@@ -30,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: 'saveplate/inventory',
+      folder: purpose === 'profile-registration' ? 'saveplate/profiles' : 'saveplate/inventory',
       transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
     });
 

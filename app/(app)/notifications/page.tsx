@@ -34,6 +34,7 @@ export default function NotificationsPage() {
       const data = await getNotifications(filter);
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
+      window.dispatchEvent(new Event("saveplate:notifications-changed"));
     } catch (err: any) {
       setError(err.message || "Failed to load notifications.");
     } finally {
@@ -52,6 +53,7 @@ export default function NotificationsPage() {
         prev.map(n => n.id === id ? { ...n, read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event("saveplate:notifications-changed"));
     } catch (err: any) {
       setError(err.message || "Failed to mark as read.");
     }
@@ -63,6 +65,7 @@ export default function NotificationsPage() {
       await markAllNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
+      window.dispatchEvent(new Event("saveplate:notifications-changed"));
     } catch (err: any) {
       setError(err.message || "Failed to mark all as read.");
     } finally {
@@ -75,6 +78,7 @@ export default function NotificationsPage() {
       await deleteNotification(id);
       setNotifications(prev => prev.filter(n => n.id !== id));
       setUnreadCount(prev => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event("saveplate:notifications-changed"));
     } catch (err: any) {
       setError(err.message || "Failed to delete notification.");
     }

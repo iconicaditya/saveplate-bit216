@@ -16,6 +16,9 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
+    // Keep the auth response compatible while VS Code refreshes generated
+    // Prisma declarations after the profile-field migration.
+    const profileUser = user as typeof user & { location: string | null; profileImageUrl: string | null };
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -56,6 +59,8 @@ export async function POST(req: NextRequest) {
         lastName: user.lastName,
         email: user.email,
         householdSize: user.householdSize,
+        location: profileUser.location,
+        profileImageUrl: profileUser.profileImageUrl,
         emailVerified: user.emailVerified,
         twoFAEnabled: user.twoFAEnabled,
       },

@@ -1,150 +1,39 @@
-import Link from "next/link";
-import { Search, MapPin, Clock } from "lucide-react";
+"use client";
 
-const items = [
-  { name: "Sourdough Bread", cat: "Bakery", qty: "1 loaf", exp: "Expires tomorrow", dist: "0.5 mi", donor: "Sarah M.", img: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=200&fit=crop&q=80" },
-  { name: "Canned Tomato Soup", cat: "Pantry", qty: "4 cans", exp: "Expires in 3 mos", dist: "1.2 mi", donor: "Community Member", img: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=200&fit=crop&q=80" },
-  { name: "Fresh Spinach", cat: "Produce", qty: "1 bag", exp: "Expires in 2 days", dist: "0.8 mi", donor: "James T.", img: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&h=200&fit=crop&q=80" },
-  { name: "Almond Milk", cat: "Dairy", qty: "Half carton", exp: "Expires in 3 days", dist: "2.1 mi", donor: "Priya K.", img: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=200&fit=crop&q=80" },
-  { name: "Spaghetti Pasta", cat: "Pantry", qty: "2 boxes", exp: "Expires in 1 yr", dist: "1.5 mi", donor: "Marco L.", img: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=400&h=200&fit=crop&q=80" },
-  { name: "Organic Apples", cat: "Produce", qty: "5 items", exp: "Expires in 4 days", dist: "0.3 mi", donor: "Lisa R.", img: "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=400&h=200&fit=crop&q=80" },
-  { name: "Oatmeal", cat: "Pantry", qty: "1 box", exp: "Expires in 2 mos", dist: "3.0 mi", donor: "David W.", img: "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400&h=200&fit=crop&q=80" },
-  { name: "Baby Carrots", cat: "Produce", qty: "1 bag", exp: "Expires in 1 week", dist: "0.9 mi", donor: "Nina C.", img: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&h=200&fit=crop&q=80" },
-];
+import { useCallback, useEffect, useState } from "react";
+import { Clock, MapPin, Search, SlidersHorizontal, X } from "lucide-react";
+import { getDonations, getDonation, updateDonation } from "@/lib/api";
+
+const categories = ["Produce", "Dairy", "Bakery", "Pantry", "Meat", "Frozen"];
+const storageTypes = ["Fridge", "Freezer", "Pantry"];
+const expiryOptions = ["Any", "Today", "This Week", "This Month"];
+
+function FilterGroup({ title, values, selected, onToggle }: { title: string; values: string[]; selected: string[]; onToggle: (value: string) => void }) {
+  return <section className="border-b border-gray-100 pb-5 last:border-0 last:pb-0"><h2 className="mb-3 text-sm font-semibold text-gray-900">{title}</h2><div className="space-y-2.5">{values.map((value) => <label key={value} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600"><input type="checkbox" checked={selected.includes(value)} onChange={() => onToggle(value)} className="h-4 w-4 rounded border-gray-300 accent-[#4CAF50]"/><span>{value}</span></label>)}</div></section>;
+}
 
 export default function BrowseFoodPage() {
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row gap-8">
+  const [items, setItems] = useState<any[]>([]); const [search, setSearch] = useState(""); const [category, setCategory] = useState<string[]>([]); const [storage, setStorage] = useState<string[]>([]); const [expiry, setExpiry] = useState("Any");
+  const [selected, setSelected] = useState<any>(null); const [message, setMessage] = useState(""); const [error, setError] = useState(""); const [loading, setLoading] = useState(true);
+  const load = useCallback(async () => { setLoading(true); try { const data = await getDonations({ search, category, storage, expiry }); setItems(data.donations || []); setError(""); } catch (e: any) { setError(e.message); } finally { setLoading(false); } }, [search, category, storage, expiry]);
+  useEffect(() => { const timer = setTimeout(load, 300); return () => clearTimeout(timer); }, [load]);
+  const toggle = (value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => setter((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  const clearFilters = () => { setSearch(""); setCategory([]); setStorage([]); setExpiry("Any"); };
+  const request = async () => { try { const result = await updateDonation(selected.id, "request"); setMessage(result.message || "Request sent to the donor."); setSelected(null); load(); } catch (e: any) { setError(e.message); } };
+  const activeCount = category.length + storage.length + (expiry !== "Any" ? 1 : 0);
 
-        {/* Filter Sidebar */}
-        <div className="w-full md:w-[200px] shrink-0 space-y-7">
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-900">Category</h3>
-            <div className="space-y-2">
-              {["Produce", "Dairy", "Bakery", "Pantry", "Meat", "Frozen"].map((c, i) => (
-                <label key={c} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <div className={`w-4 h-4 border-2 rounded flex items-center justify-center shrink-0 ${i === 1 ? "border-[#4CAF50] bg-[#4CAF50]" : "border-gray-300 bg-white"}`}>
-                    {i === 1 && <div className="w-2 h-2 bg-white rounded-sm" />}
-                  </div>
-                  {c}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-900">Distance</h3>
-            <input type="range" className="w-full accent-[#4CAF50]" defaultValue={50} />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>0 mi</span><span>10 mi</span>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-900">Expiry</h3>
-            <div className="space-y-2">
-              {["Today", "This Week", "This Month", "Any"].map((c, i) => (
-                <label key={c} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <div className={`w-4 h-4 border-2 rounded-full flex items-center justify-center shrink-0 ${i === 1 ? "border-[#4CAF50]" : "border-gray-300 bg-white"}`}>
-                    {i === 1 && <div className="w-2 h-2 bg-[#4CAF50] rounded-full" />}
-                  </div>
-                  {c}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-900">Storage Type</h3>
-            <div className="space-y-2">
-              {["Fridge", "Freezer", "Pantry"].map((c) => (
-                <label key={c} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <div className="w-4 h-4 border-2 border-gray-300 bg-white rounded shrink-0" />
-                  {c}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm text-gray-900">Availability</h3>
-            <div className="space-y-2">
-              {["Available Now", "Today", "This Week"].map((c, i) => (
-                <label key={c} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                  <div className={`w-4 h-4 border-2 rounded flex items-center justify-center shrink-0 ${i === 0 ? "border-[#4CAF50] bg-[#4CAF50]" : "border-gray-300 bg-white"}`}>
-                    {i === 0 && <div className="w-2 h-2 bg-white rounded-sm" />}
-                  </div>
-                  {c}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <button className="w-full text-xs text-gray-500 border border-gray-200 h-8 rounded-md hover:bg-gray-50 transition-colors">Clear Filters</button>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input placeholder="Search donations..." className="pl-10 w-full bg-white border border-gray-200 h-9 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-300" />
-            </div>
-            <div className="text-sm text-gray-500">
-              <span className="font-semibold text-gray-700">42</span> items available
-            </div>
-          </div>
-
-          {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            {items.map((item, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col hover:border-gray-300 hover:shadow-md transition-all">
-                <div className="h-[150px] overflow-hidden relative">
-                  <img
-                    src={item.img}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                    style={{ filter: "grayscale(85%) brightness(0.95)" }}
-                  />
-                  <div className="absolute top-2 right-2">
-                    <span className="bg-white/90 text-gray-700 border border-gray-200 text-[10px] font-medium px-2 py-0.5 rounded shadow-sm">
-                      {item.cat}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-4 flex-1 flex flex-col gap-2">
-                  <h4 className="font-semibold text-gray-900 text-sm leading-tight">{item.name}</h4>
-                  <p className="text-xs text-gray-500">Qty: <span className="text-gray-700 font-medium">{item.qty}</span></p>
-                  <div className="flex items-center text-xs text-gray-500 gap-1">
-                    <Clock className="w-3 h-3 shrink-0" /> {item.exp}
-                  </div>
-                  <div className="flex items-center text-xs text-gray-500 gap-1">
-                    <MapPin className="w-3 h-3 shrink-0" /> {item.dist} away
-                  </div>
-                  <p className="text-[11px] text-gray-400 mt-auto">Donor: {item.donor}</p>
-                  <Link
-                    href="/browse/matching"
-                    className="w-full mt-1 border border-gray-200 text-gray-700 hover:bg-gray-50 h-8 text-xs font-medium rounded-md flex items-center justify-center transition-colors"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* No Results / Empty State */}
-          <div className="py-12 px-4 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center text-center bg-gray-50">
-            <div className="w-16 h-16 bg-gray-200 rounded-xl mb-4 flex items-center justify-center">
-              <Search className="w-7 h-7 text-gray-400" />
-            </div>
-            <h3 className="text-base font-semibold text-gray-800 mb-1">No results found</h3>
-            <p className="text-sm text-gray-500 max-w-sm mb-4">Try adjusting your filters or expanding your search distance.</p>
-            <button className="bg-[#4CAF50] text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-[#3d8c40] transition-colors">Clear Filters</button>
-          </div>
-        </div>
+  return <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <aside className="w-full shrink-0 self-start lg:sticky lg:top-6 lg:w-60">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-[#4CAF50]"/><h1 className="font-semibold text-gray-900">Filters</h1>{activeCount > 0 && <span className="rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[11px] font-semibold text-[#2E7D32]">{activeCount}</span>}</div><button onClick={clearFilters} disabled={!activeCount && !search} className="text-xs font-medium text-[#2E7D32] hover:text-[#1B5E20] disabled:text-gray-300">Clear all</button></div>
+        <div className="space-y-5"><FilterGroup title="Category" values={categories} selected={category} onToggle={(value) => toggle(value, setCategory)} /><FilterGroup title="Storage type" values={storageTypes} selected={storage} onToggle={(value) => toggle(value, setStorage)} /><section><h2 className="mb-3 text-sm font-semibold text-gray-900">Expiry</h2><div className="space-y-2.5">{expiryOptions.map((value) => <label key={value} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600"><input type="radio" name="expiry" checked={expiry === value} onChange={() => setExpiry(value)} className="h-4 w-4 border-gray-300 accent-[#4CAF50]"/>{value}</label>)}</div></section></div>
       </div>
-    </div>
-  );
+    </aside>
+    <main className="min-w-0 flex-1 space-y-5">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="relative w-full sm:max-w-md"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search published donations..." className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm outline-none focus:border-[#4CAF50] focus:ring-2 focus:ring-[#4CAF50]/15"/></div><p className="text-sm text-gray-500"><b className="text-gray-800">{items.length}</b> published {items.length === 1 ? "donation" : "donations"}</p></div></div>
+      {(error || message) && <div className={`flex items-center justify-between rounded-lg p-3 text-sm ${error ? "border border-red-200 bg-red-50 text-red-700" : "border border-green-200 bg-green-50 text-green-700"}`}><span>{error || message}</span><button onClick={() => { setError(""); setMessage(""); }} aria-label="Dismiss message"><X className="h-4 w-4"/></button></div>}
+      {loading ? <div className="grid place-items-center rounded-xl border border-gray-200 bg-white py-20 text-sm text-gray-500">Loading donations…</div> : items.length ? <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{items.map((donation) => <article key={donation.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="h-40 bg-gray-100">{donation.foodItem.imageUrl ? <img src={donation.foodItem.imageUrl} alt={donation.foodItem.name} className="h-full w-full object-cover"/> : <div className="grid h-full place-items-center text-sm text-gray-400">No image available</div>}</div><div className="space-y-2.5 p-4"><div className="flex items-start justify-between gap-3"><h2 className="font-semibold text-gray-900">{donation.foodItem.name}</h2><span className="shrink-0 rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-600">{donation.foodItem.category}</span></div><p className="text-sm text-gray-600"><span className="text-gray-400">Quantity:</span> {donation.foodItem.quantity} {donation.foodItem.unit}</p><p className="flex items-center gap-1.5 text-xs text-gray-500"><Clock className="h-3.5 w-3.5"/>Use by {new Date(donation.foodItem.expiryDate).toLocaleDateString()}</p><p className="flex items-center gap-1.5 text-xs text-gray-500"><MapPin className="h-3.5 w-3.5"/>{donation.donor.location || "Nearby household"}</p><p className="text-xs text-gray-400">Shared by {donation.donor.firstName} {donation.donor.lastName?.[0]}.</p><button onClick={async () => { try { setSelected((await getDonation(donation.id)).donation); } catch (e: any) { setError(e.message); } }} className="mt-1 h-9 w-full rounded-md border border-[#4CAF50]/40 text-sm font-medium text-[#2E7D32] transition hover:bg-[#E8F5E9]">Request food</button></div></article>)}</div> : <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white py-20 text-center"><Search className="mx-auto mb-3 h-7 w-7 text-gray-400"/><h2 className="font-semibold text-gray-700">No published donations found</h2><p className="mt-1 text-sm text-gray-500">Try clearing filters or check back later for new listings.</p><button onClick={clearFilters} className="mt-4 rounded-md bg-[#4CAF50] px-4 py-2 text-sm font-medium text-white hover:bg-[#3d8c40]">Clear filters</button></div>}
+    </main>
+    {selected && <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4"><div className="w-full max-w-md space-y-4 rounded-xl bg-white p-5 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h2 className="font-semibold text-gray-900">Request {selected.foodItem.name}</h2><p className="mt-1 text-sm text-gray-500">{selected.foodItem.quantity} {selected.foodItem.unit} · Available {selected.availability}</p></div><button onClick={() => setSelected(null)} aria-label="Close request dialog"><X className="h-5 w-5 text-gray-500"/></button></div><div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Your request is sent to the donor for approval. The pickup address is shared only after approval.</div><button onClick={request} className="h-10 w-full rounded-md bg-[#4CAF50] text-sm font-medium text-white hover:bg-[#3d8c40]">Send request</button></div></div>}
+  </div>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { registerUser } from "@/lib/api";
@@ -12,7 +12,10 @@ export default function RegisterPage() {
     email: "",
     password: "",
     householdSize: "",
+    location: "",
   });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -39,10 +42,23 @@ export default function RegisterPage() {
       next.password = "Password must be at least 8 characters.";
     }
     if (!form.householdSize) next.householdSize = "Please select your household size.";
+    if (!form.location.trim()) next.location = "Location is required.";
     if (!agreed) next.agreed = "You must agree to the terms.";
 
     setErrors(next);
     return Object.keys(next).length === 0;
+  }
+
+  function handleProfileImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      setErrors((prev) => ({ ...prev, profileImage: "Choose an image smaller than 5 MB." }));
+      return;
+    }
+    setProfileImage(file);
+    setProfilePreview(URL.createObjectURL(file));
+    setErrors((prev) => ({ ...prev, profileImage: "" }));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -52,12 +68,24 @@ export default function RegisterPage() {
 
     setIsLoading(true);
     try {
+      let profileImageUrl = "";
+      if (profileImage) {
+        const uploadData = new FormData();
+        uploadData.append("image", profileImage);
+        uploadData.append("purpose", "profile-registration");
+        const uploadResponse = await fetch("/api/upload", { method: "POST", body: uploadData });
+        const uploadResult = await uploadResponse.json();
+        if (!uploadResponse.ok) throw new Error(uploadResult.error || "Profile image upload failed.");
+        profileImageUrl = uploadResult.url;
+      }
       await registerUser({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         password: form.password,
         householdSize: form.householdSize,
+        location: form.location.trim(),
+        profileImageUrl,
       });
       // Store user email for the verification page
       localStorage.setItem("saveplate_pending_email", form.email.trim());
@@ -142,6 +170,18 @@ export default function RegisterPage() {
                 autoComplete="email"
               />
               {errors.email && <p id="reg-email-error" className="text-xs text-red-600 mt-1" role="alert">{errors.email}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="reg-location" className="text-sm font-semibold text-gray-700">Location</label>
+              <input id="reg-location" type="text" placeholder="e.g. Kathmandu, Nepal" value={form.location} onChange={(e) => setField("location", e.target.value)} className={`w-full h-11 px-4 rounded-xl border bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 ${errors.location ? "border-red-400 bg-red-50" : "border-gray-200"}`} />
+              {errors.location && <p className="text-xs text-red-600" role="alert">{errors.location}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="reg-profile-image" className="text-sm font-semibold text-gray-700">Profile Image <span className="font-normal text-gray-400">(optional)</span></label>
+              <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-full bg-gray-100 border overflow-hidden flex items-center justify-center text-xs text-gray-400">{profilePreview ? <img src={profilePreview} alt="Profile preview" className="w-full h-full object-cover" /> : "Photo"}</div><input id="reg-profile-image" type="file" accept="image/*" onChange={handleProfileImage} className="block w-full text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#E8F5E9] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[#2E7D32]" /></div>
+              {errors.profileImage && <p className="text-xs text-red-600" role="alert">{errors.profileImage}</p>}
             </div>
 
             <div className="space-y-1.5">

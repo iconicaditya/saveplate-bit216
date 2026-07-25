@@ -11,6 +11,8 @@ async function handler(req: NextRequest, user: AuthUser) {
       lastName: true,
       email: true,
       householdSize: true,
+      location: true,
+      profileImageUrl: true,
       emailVerified: true,
       twoFAEnabled: true,
       createdAt: true,
