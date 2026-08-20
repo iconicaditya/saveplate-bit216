@@ -23,29 +23,16 @@ export async function GET(req: NextRequest) {
   const range = params.get("range") || "30d";
   const category = params.get("category") || "All";
   const overview = params.get("overview") === "true";
-  const customStart = params.get("start");
-  const customEnd = params.get("end");
-  let days = RANGE_DAYS[range];
+  const days = RANGE_DAYS[range];
 
-  if (range !== "custom" && !days) {
+  if (!days) {
     return NextResponse.json({ error: "Unsupported analytics date range." }, { status: 400 });
   }
 
   try {
-    let start: Date;
-    let end: Date;
-
-    if (range === "custom" && customStart && customEnd) {
-      start = startOfDay(new Date(customStart));
-      end = new Date(customEnd);
-      end.setHours(23, 59, 59, 999);
-      days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-    } else {
-      end = new Date();
-      start = startOfDay(new Date(end));
-      start.setDate(start.getDate() - (days - 1));
-    }
-
+    const end = new Date();
+    const start = startOfDay(new Date(end));
+    start.setDate(start.getDate() - (days - 1));
     const previousStart = new Date(start);
     previousStart.setDate(previousStart.getDate() - days);
     const previousEnd = new Date(start);
