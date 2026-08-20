@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, FormEvent } from "react";
+import { useState, useEffect, useCallback, FormEvent, useRef } from "react";
 import { Search, Plus, Eye, Edit2, CheckSquare, HeartHandshake, Trash2, AlertCircle, X, ImageOff } from "lucide-react";
 import { getInventoryItems, createFoodItem, updateFoodItem, deleteFoodItem, publishDonation } from "@/lib/api";
+import { useToast } from "@/components/ToastProvider";
 
 interface FoodItem {
   id: string;
@@ -18,6 +19,8 @@ interface FoodItem {
 }
 
 export default function InventoryPage() {
+  const { addToast } = useToast();
+  const hasNotifiedExpiry = useRef(false);
   const [items, setItems] = useState<FoodItem[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,6 +95,33 @@ export default function InventoryPage() {
       });
       setItems(data.items || []);
       setTotal(data.total || 0);
+
+      if (!hasNotifiedExpiry.current && data.items && data.items.length > 0) {
+        let expiringCount = 0;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        data.items.forEach((item: FoodItem) => {
+          if (item.status === 'Fresh' || item.status === 'Expiring Soon') {
+             const expiryDate = new Date(item.expiryDate);
+             const timeDiff = expiryDate.getTime() - now.getTime();
+             const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+             if (daysDiff >= 0 && daysDiff <= 2) {
+                expiringCount++;
+             }
+          }
+        });
+
+        if (expiringCount > 0) {
+           addToast(
+             `Alert: You have ${expiringCount} item${expiringCount > 1 ? 's' : ''} expiring in 2 days or less. Check your inventory!`,
+             "warning",
+             8000
+           );
+           hasNotifiedExpiry.current = true;
+        }
+      }
+
     } catch (err: any) {
       setError(err.message || "Failed to load inventory.");
     } finally {
