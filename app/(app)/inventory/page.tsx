@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent, useRef } from "react";
 import { Search, Plus, Eye, Edit2, CheckSquare, HeartHandshake, Trash2, AlertCircle, X, ImageOff } from "lucide-react";
-import { getInventoryItems, createFoodItem, updateFoodItem, deleteFoodItem, publishDonation } from "@/lib/api";
+import { getInventoryItems, createFoodItem, updateFoodItem, deleteFoodItem, publishDonation, batchDeleteFoodItems } from "@/lib/api";
 import { useToast } from "@/components/ToastProvider";
 
 interface FoodItem {
@@ -51,6 +51,10 @@ export default function InventoryPage() {
   const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
+
+  // Selection state for batch actions
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<FoodItem | null>(null);
@@ -240,6 +244,43 @@ export default function InventoryPage() {
     }
   }
 
+  async function handleBatchDelete() {
+    if (selectedItems.size === 0) return;
+    const confirmDelete = window.confirm(`Are you sure you want to delete ${selectedItems.size} items?`);
+    if (!confirmDelete) return;
+
+    setIsBatchDeleting(true);
+    try {
+      await batchDeleteFoodItems(Array.from(selectedItems));
+      addToast(`Successfully deleted ${selectedItems.size} items.`, "success");
+      setSelectedItems(new Set()); // Clear selection
+      fetchItems();
+    } catch (err: any) {
+      addToast(err.message || "Failed to delete selected items.", "error");
+    } finally {
+      setIsBatchDeleting(false);
+    }
+  }
+
+  function handleSelectAll(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.checked) {
+      const allIds = new Set(displayedItems.map(item => item.id));
+      setSelectedItems(allIds);
+    } else {
+      setSelectedItems(new Set());
+    }
+  }
+
+  function handleSelectItem(id: string, checked: boolean) {
+    const newSelected = new Set(selectedItems);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedItems(newSelected);
+  }
+
   // ─── Donate Item ───────────────────────────────────────────────
 
   function openDonate(item: FoodItem) {
@@ -385,9 +426,20 @@ export default function InventoryPage() {
             <option>Fresh</option><option>Expiring Soon</option><option>Expired</option>
           </select>
         </div>
-        <button onClick={() => { setShowAddForm(true); setAddSuccess(false); setAddErrors({}); }} className="flex items-center gap-2 bg-[#4CAF50] text-white text-sm font-medium px-4 h-9 rounded-md hover:bg-[#3d8c40] transition-colors whitespace-nowrap">
-          <Plus className="w-4 h-4" /> Add Food Item
-        </button>
+        <div className="flex gap-2">
+          {selectedItems.size > 0 && (
+            <button
+              onClick={handleBatchDelete}
+              disabled={isBatchDeleting}
+              className="flex items-center gap-2 bg-red-500 text-white text-sm font-medium px-4 h-9 rounded-md hover:bg-red-600 transition-colors whitespace-nowrap disabled:opacity-70"
+            >
+              <Trash2 className="w-4 h-4" /> {isBatchDeleting ? "Deleting..." : `Delete Selected (${selectedItems.size})`}
+            </button>
+          )}
+          <button onClick={() => { setShowAddForm(true); setAddSuccess(false); setAddErrors({}); }} className="flex items-center gap-2 bg-[#4CAF50] text-white text-sm font-medium px-4 h-9 rounded-md hover:bg-[#3d8c40] transition-colors whitespace-nowrap">
+            <Plus className="w-4 h-4" /> Add Food Item
+          </button>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -404,7 +456,14 @@ export default function InventoryPage() {
               <table className="w-full min-w-[920px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left w-8"><div className="w-4 h-4 border-2 border-gray-300 rounded" /></th>
+                    <th className="px-4 py-3 text-left w-8">
+                      <input
+                        type="checkbox"
+                        checked={displayedItems.length > 0 && selectedItems.size === displayedItems.length}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 rounded border-gray-300 text-[#4CAF50] focus:ring-[#4CAF50] cursor-pointer"
+                      />
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide w-20">Image</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Item Name</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Category</th>
@@ -423,7 +482,14 @@ export default function InventoryPage() {
                       const warn = item.status === "Expiring Soon" || item.status === "Expired";
                       return (
                         <tr key={item.id} className={`border-b border-gray-100 last:border-0 ${warn ? "bg-amber-50/60 border-l-2 border-l-amber-300" : "hover:bg-gray-50/50"}`}>
-                          <td className="px-4 py-3"><div className="w-4 h-4 border-2 border-gray-200 rounded" /></td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.has(item.id)}
+                              onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                              className="w-4 h-4 rounded border-gray-300 text-[#4CAF50] focus:ring-[#4CAF50] cursor-pointer"
+                            />
+                          </td>
                           <td className="px-4 py-3">
                             {item.imageUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
