@@ -16,13 +16,34 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
+
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      return NextResponse.json({ error: 'Account locked due to too many failed attempts. Try again later or reset your password.' }, { status: 423 });
+    }
+
     // Keep the auth response compatible while VS Code refreshes generated
     // Prisma declarations after the profile-field migration.
     const profileUser = user as typeof user & { location: string | null; profileImageUrl: string | null };
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      const failedAttempts = (user.failedLoginAttempts || 0) + 1;
+      const updates: any = { failedLoginAttempts: failedAttempts };
+
+      if (failedAttempts >= 5) {
+        const lockedUntil = new Date();
+        lockedUntil.setMinutes(lockedUntil.getMinutes() + 30); // Lock for 30 minutes
+        updates.lockedUntil = lockedUntil;
+      }
+
+      await prisma.user.update({ where: { id: user.id }, data: updates });
+
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
+    }
+
+    // Reset failed attempts on success
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+       await prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
     }
 
     if (user.twoFAEnabled) {

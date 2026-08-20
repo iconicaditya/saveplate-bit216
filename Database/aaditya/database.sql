@@ -6,6 +6,17 @@
 -- Table: User
 -- Stores registered user accounts
 -- =============================================
+-- ALTER TABLE "User" TO ADD NEW COLUMNS
+ALTER TABLE "User"
+ADD COLUMN IF NOT EXISTS "location" TEXT,
+ADD COLUMN IF NOT EXISTS "profileImageUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP(3),
+ADD COLUMN IF NOT EXISTS "resetToken" TEXT,
+ADD COLUMN IF NOT EXISTS "resetTokenExpiry" TIMESTAMP(3);
+
+-- IF you need to create the table from scratch instead, uncomment below:
+/*
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
@@ -13,14 +24,21 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "householdSize" TEXT NOT NULL,
+    "location" TEXT,
+    "profileImageUrl" TEXT,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "twoFAEnabled" BOOLEAN NOT NULL DEFAULT false,
     "twoFASecret" TEXT,
+    "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
+    "lockedUntil" TIMESTAMP(3),
+    "resetToken" TEXT,
+    "resetTokenExpiry" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
+*/
 
 -- Unique index on email for fast login lookups
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
