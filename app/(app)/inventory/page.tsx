@@ -47,6 +47,7 @@ export default function InventoryPage() {
   const [addImageFile, setAddImageFile] = useState<File | null>(null);
   const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState("");
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<FoodItem | null>(null);
@@ -119,6 +120,35 @@ export default function InventoryPage() {
     if (!addForm.expiryDate) errs.expiryDate = "Expiry date is required.";
     setAddErrors(errs);
     return Object.keys(errs).length === 0;
+  }
+
+  function handleBarcodeLookup() {
+    const barcodeItems: Record<string, { name: string; category: string; quantity: string; unit: string; storage: string; expiryDays: number }> = {
+      "890123": { name: "Fresh Apples", category: "Produce", quantity: "6", unit: "items", storage: "Fridge", expiryDays: 10 },
+      "890456": { name: "Whole Milk", category: "Dairy", quantity: "1", unit: "liters", storage: "Fridge", expiryDays: 7 },
+      "890789": { name: "Brown Bread", category: "Bakery", quantity: "1", unit: "loaf", storage: "Pantry", expiryDays: 5 },
+      "123456": { name: "Canned Beans", category: "Canned Goods", quantity: "2", unit: "cans", storage: "Pantry", expiryDays: 365 },
+      "654321": { name: "Chicken Breast", category: "Meat", quantity: "2", unit: "items", storage: "Freezer", expiryDays: 30 },
+    };
+    const item = barcodeItems[barcodeInput.trim()];
+
+    if (!item) {
+      setAddErrors({ form: "Barcode not found. Try one of the suggested sample codes." });
+      return;
+    }
+
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + item.expiryDays);
+    setAddForm((current) => ({
+      ...current,
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
+      storage: item.storage,
+      expiryDate: expiryDate.toISOString().split("T")[0],
+    }));
+    setAddErrors({});
   }
 
   async function handleAddSubmit(e: FormEvent) {
@@ -434,9 +464,18 @@ export default function InventoryPage() {
               <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
                 {addErrors.form && <div className="p-2 bg-red-50 border border-red-200 text-red-600 text-xs rounded">{addErrors.form}</div>}
 
+                <div className="space-y-1.5 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <label className="text-sm font-semibold text-gray-700">Barcode Lookup (Optional)</label>
+                  <div className="flex gap-2">
+                    <input placeholder="Enter barcode (e.g., 890123)" value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} className="flex-1 h-10 px-4 rounded-xl border border-gray-200 bg-white text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50]" />
+                    <button type="button" onClick={handleBarcodeLookup} className="h-10 px-4 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors">Auto-Fill</button>
+                  </div>
+                  <p className="text-xs text-blue-600">Try 890123, 890456, 890789, 123456, or 654321</p>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-gray-700">Food Name <span className="text-red-400">*</span></label>
-                  <input placeholder="e.g. Whole Milk" value={addForm.name} onChange={(e) => { setAddForm(f => ({ ...f, name: e.target.value })); if (addErrors.name) setAddErrors(p => ({ ...p, name: "" })); }} className={`w-full h-10 px-4 rounded-xl border bg-gray-50 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50] ${addErrors.name ? "border-red-400 bg-red-50" : "border-gray-200"}`} autoFocus />
+                  <input placeholder="e.g. Whole Milk" value={addForm.name} onChange={(e) => { setAddForm(f => ({ ...f, name: e.target.value })); if (addErrors.name) setAddErrors(p => ({ ...p, name: "" })); }} className={`w-full h-10 px-4 rounded-xl border bg-gray-50 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4CAF50]/30 focus:border-[#4CAF50] ${addErrors.name ? "border-red-400 bg-red-50" : "border-gray-200"}`} autoFocus={!barcodeInput} />
                   {addErrors.name && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{addErrors.name}</p>}
                 </div>
 
