@@ -60,7 +60,7 @@ function ResetPasswordForm() {
         setStatus("error");
         setMessage(data.error || "Failed to reset password.");
       }
-    } catch (error) {
+    } catch {
       setStatus("error");
       setMessage("An unexpected error occurred. Please try again later.");
     }

@@ -6,10 +6,17 @@ CREATE TABLE IF NOT EXISTS "User" (
   "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text, "firstName" TEXT NOT NULL, "lastName" TEXT NOT NULL,
   "email" TEXT NOT NULL UNIQUE, "password" TEXT NOT NULL, "householdSize" TEXT NOT NULL, "location" TEXT,
   "profileImageUrl" TEXT, "emailVerified" BOOLEAN NOT NULL DEFAULT false, "twoFAEnabled" BOOLEAN NOT NULL DEFAULT false,
-  "twoFASecret" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "twoFASecret" TEXT, "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0, "lockedUntil" TIMESTAMP(3),
+  "resetToken" TEXT, "resetTokenExpiry" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "location" TEXT;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "profileImageUrl" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "failedLoginAttempts" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetToken" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resetTokenExpiry" TIMESTAMP(3);
+CREATE INDEX IF NOT EXISTS "User_resetToken_idx" ON "User"("resetToken");
 
 CREATE TABLE IF NOT EXISTS "VerificationToken" (
   "id" TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text, "email" TEXT NOT NULL, "token" TEXT NOT NULL, "type" TEXT NOT NULL,
