@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:aaditya": "playwright test tests/aaditya",
+    "test:aakroshan": "playwright test tests/aakroshan",
+    "test:ajay": "playwright test tests/ajay",
     "postinstall": "prisma generate"
   },
   "dependencies": {
