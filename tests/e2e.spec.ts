@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('SavePlate User Workflow & Analytics E2E Tests', () => {
+test.describe('SavePlate User Workflow, Analytics, & Iteration 2 E2E Tests', () => {
 
   const timestamp = Date.now();
   const testUser = {
@@ -228,5 +228,235 @@ test.describe('SavePlate User Workflow & Analytics E2E Tests', () => {
     for (let i = 0; i < 4; i++) {
         await expect(settingsToggles.nth(i)).toHaveAttribute('aria-checked', 'false');
     }
+  });
+
+  // --- ITERATION 2 TESTS (TC-33 to TC-38) ---
+
+  test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category', async ({ page }) => {
+    const invUser = `inv_${Date.now()}@example.com`;
+    // Register & Login quick helper
+    await page.goto('/register');
+    await page.fill('input[name="firstName"]', 'Inv');
+    await page.fill('input[name="lastName"]', 'User');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.fill('input[name="confirmPassword"]', 'Password123!');
+    await page.selectOption('select[name="householdSize"]', '1');
+    await page.click('button[type="submit"]');
+    await page.waitForURL(/.*\/register\/.*/);
+
+    await page.goto('/login');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/dashboard');
+
+    await page.goto('/inventory');
+    await page.click('button:has-text("Add Food Item")');
+
+    // Fill valid barcode
+    await page.fill('input[placeholder="Enter barcode (e.g., 890123)"]', '890123');
+    await page.click('button:has-text("Auto-Fill")');
+
+    // Verify auto-populated values (890123 maps to Fresh Apples / Produce)
+    const nameInput = page.locator('input[placeholder="e.g. Whole Milk"]');
+    await expect(nameInput).toHaveValue('Fresh Apples');
+
+    const produceBtn = page.locator('button:has-text("Produce")');
+    await expect(produceBtn).toHaveClass(/bg-\[#4CAF50\]/); // it should be highlighted/selected
+  });
+
+  test('TC-34: Enter unknown barcode 000000 -> Displays error message', async ({ page }) => {
+    const invUser = `inv2_${Date.now()}@example.com`;
+    await page.goto('/register');
+    await page.fill('input[name="firstName"]', 'Inv2');
+    await page.fill('input[name="lastName"]', 'User');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.fill('input[name="confirmPassword"]', 'Password123!');
+    await page.selectOption('select[name="householdSize"]', '1');
+    await page.click('button[type="submit"]');
+
+    await page.goto('/login');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/dashboard');
+
+    await page.goto('/inventory');
+    await page.click('button:has-text("Add Food Item")');
+
+    // Fill invalid barcode
+    await page.fill('input[placeholder="Enter barcode (e.g., 890123)"]', '000000');
+    await page.click('button:has-text("Auto-Fill")');
+
+    // Verify error toast or message on form
+    await expect(page.locator('text=Barcode not found. Try one of the suggested sample codes.')).toBeVisible();
+  });
+
+  test('TC-35: System detects items expiring in <= 2 days -> Displays toast banner', async ({ page }) => {
+    const invUser = `inv3_${Date.now()}@example.com`;
+    await page.goto('/register');
+    await page.fill('input[name="firstName"]', 'Inv3');
+    await page.fill('input[name="lastName"]', 'User');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.fill('input[name="confirmPassword"]', 'Password123!');
+    await page.selectOption('select[name="householdSize"]', '1');
+    await page.click('button[type="submit"]');
+
+    await page.goto('/login');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/dashboard');
+
+    await page.goto('/inventory');
+
+    // Add an item expiring tomorrow
+    await page.click('button:has-text("Add Food Item")');
+    await page.fill('input[placeholder="e.g. Whole Milk"]', 'Expiring Soon Item');
+    await page.fill('input[placeholder="1"]', '1');
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tmrwStr = tomorrow.toISOString().split('T')[0];
+
+    await page.fill('input[type="date"]', tmrwStr);
+    await page.click('button:has-text("Save Item")');
+
+    // Wait for the modal to close and table to refresh
+    await expect(page.locator('text=Food item added successfully!')).toBeVisible();
+    await page.waitForTimeout(1500); // Give time for modal close and refetch
+
+    // Reload the page to trigger the check
+    await page.reload();
+
+    // Verify toast appears
+    await expect(page.locator('text=Alert: You have 1 item expiring in 2 days or less')).toBeVisible();
+  });
+
+  test('TC-36 & TC-37: UI Batch Deletion & API Test', async ({ page, request }) => {
+    // Because Playwright integrates UI and API testing beautifully, we can test TC-36 and TC-37 together.
+    const invUser = `inv4_${Date.now()}@example.com`;
+    await page.goto('/register');
+    await page.fill('input[name="firstName"]', 'Inv4');
+    await page.fill('input[name="lastName"]', 'User');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.fill('input[name="confirmPassword"]', 'Password123!');
+    await page.selectOption('select[name="householdSize"]', '1');
+    await page.click('button[type="submit"]');
+
+    await page.goto('/login');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/dashboard');
+
+    // Retrieve the auth token from local storage to use in the API request
+    const token = await page.evaluate(() => localStorage.getItem('saveplate_token'));
+
+    // Create 3 items via API to save time setting up the UI test
+    const itemsToCreate = ['Item 1', 'Item 2', 'Item 3'];
+    const itemIds = [];
+
+    for (const name of itemsToCreate) {
+      const res = await request.post('/api/inventory', {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          name, category: 'Produce', quantity: '1', unit: 'items',
+          expiryDate: new Date(Date.now() + 86400000 * 5).toISOString(), storage: 'Fridge'
+        }
+      });
+      const data = await res.json();
+      itemIds.push(data.item.id);
+    }
+
+    // Now test TC-36 (Select 3 checkboxes -> Click "Delete Selected")
+    await page.goto('/inventory');
+    await expect(page.locator('text=Item 1')).toBeVisible();
+
+    // Select all via header checkbox
+    await page.locator('thead input[type="checkbox"]').check();
+
+    // Click Delete Selected
+    page.on('dialog', dialog => dialog.accept()); // Automatically accept the confirm alert
+    await page.click('button:has-text("Delete Selected")');
+
+    // Verify success toast and table is empty
+    await expect(page.locator('text=Successfully deleted 3 items')).toBeVisible();
+    await expect(page.locator('text=No food items found. Add your first item!')).toBeVisible();
+
+    // Now test TC-37 (Automated API test executes batch deletion payload directly)
+    // First create 2 new items
+    const apiIds = [];
+    for (let i = 0; i < 2; i++) {
+        const res = await request.post('/api/inventory', {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            name: `API Item ${i}`, category: 'Produce', quantity: '1', unit: 'items',
+            expiryDate: new Date(Date.now() + 86400000 * 5).toISOString(), storage: 'Fridge'
+          }
+        });
+        const data = await res.json();
+        apiIds.push(data.item.id);
+      }
+
+    // Execute Batch Delete Payload
+    const batchRes = await request.delete('/api/inventory/batch', {
+       headers: { Authorization: `Bearer ${token}` },
+       data: { ids: apiIds }
+     });
+
+    expect(batchRes.status()).toBe(200);
+    const batchData = await batchRes.json();
+    expect(batchData.deletedCount).toBe(2);
+  });
+
+  test('TC-38: Regression check: Click "Convert to Donation"', async ({ page }) => {
+    const invUser = `inv5_${Date.now()}@example.com`;
+    await page.goto('/register');
+    await page.fill('input[name="firstName"]', 'Inv5');
+    await page.fill('input[name="lastName"]', 'User');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.fill('input[name="confirmPassword"]', 'Password123!');
+    await page.selectOption('select[name="householdSize"]', '1');
+    await page.click('button[type="submit"]');
+
+    await page.goto('/login');
+    await page.fill('input[name="email"]', invUser);
+    await page.fill('input[name="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/dashboard');
+
+    await page.goto('/inventory');
+
+    // Add Item
+    await page.click('button:has-text("Add Food Item")');
+    await page.fill('input[placeholder="e.g. Whole Milk"]', 'Donate Me Canned Beans');
+    await page.fill('input[placeholder="1"]', '5');
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 30);
+    await page.fill('input[type="date"]', futureDate.toISOString().split('T')[0]);
+    await page.click('button:has-text("Save Item")');
+    await expect(page.locator('text=Food item added successfully!')).toBeVisible();
+    await page.waitForTimeout(1500);
+
+    // Click Donate Action
+    await page.click('button[title="Donate"]');
+    await expect(page.locator('h3:has-text("Donate")')).toBeVisible();
+
+    // Fill form
+    await page.fill('input[placeholder="e.g. 123 Main St, Apt 4B"]', '123 Test Ave');
+    await page.click('button:has-text("Confirm Donation")');
+
+    // Verify Toast
+    await expect(page.locator('text=Donation created successfully!')).toBeVisible();
+
+    // Go to My Donations and verify
+    await page.goto('/donations');
+    await expect(page.locator('text=Donate Me Canned Beans')).toBeVisible();
   });
 });
