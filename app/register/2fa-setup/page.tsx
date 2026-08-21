@@ -102,6 +102,7 @@ export default function TwoFactorSetupPage() {
           {/* Real QR Code from backend */}
           <div className="flex justify-center mb-6">
             {qrDataUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={qrDataUrl}
                 alt="Scan this QR code with your authenticator app"

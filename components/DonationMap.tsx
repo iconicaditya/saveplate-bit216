@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, User, Package, Calendar } from "lucide-react";
+import { MapPin, User, Package } from "lucide-react";
 
 // Fix Leaflet's default icon issue with Next.js/Webpack
 const DefaultIcon = L.icon({

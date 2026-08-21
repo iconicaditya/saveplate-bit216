@@ -180,6 +180,7 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <label htmlFor="reg-profile-image" className="text-sm font-semibold text-gray-700">Profile Image <span className="font-normal text-gray-400">(optional)</span></label>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <div className="flex items-center gap-3"><div className="w-12 h-12 rounded-full bg-gray-100 border overflow-hidden flex items-center justify-center text-xs text-gray-400">{profilePreview ? <img src={profilePreview} alt="Profile preview" className="w-full h-full object-cover" /> : "Photo"}</div><input id="reg-profile-image" type="file" accept="image/*" onChange={handleProfileImage} className="block w-full text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#E8F5E9] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[#2E7D32]" /></div>
               {errors.profileImage && <p className="text-xs text-red-600" role="alert">{errors.profileImage}</p>}
             </div>
