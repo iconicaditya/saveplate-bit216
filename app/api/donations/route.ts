@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateToken } from "@/lib/auth-middleware";
+import { releaseExpiredDonationClaims } from "@/lib/donation-claims";
 
 export async function GET(req: NextRequest) {
   const user = authenticateToken(req); if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
@@ -22,6 +23,8 @@ export async function GET(req: NextRequest) {
     }
   }
   try {
+    // Marketplace loads release claims that have not been collected within 24 hours.
+    await releaseExpiredDonationClaims();
     const donations = await prisma.donation.findMany({ where, orderBy: { updatedAt: "desc" }, include: { foodItem: true, donor: { select: { firstName: true, lastName: true, location: true, profileImageUrl: true } }, claimant: { select: { firstName: true, lastName: true, location: true, profileImageUrl: true } } } });
     const safeDonations = donations.map((donation) => ({ ...donation, pickupLocation: donation.status === "APPROVED" ? donation.pickupLocation : null }));
     return NextResponse.json({ donations: safeDonations, total: safeDonations.length });

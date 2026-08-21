@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateToken } from "@/lib/auth-middleware";
+import { releaseExpiredDonationClaims } from "@/lib/donation-claims";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = authenticateToken(req); if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 }); const { id } = await params;
+  await releaseExpiredDonationClaims();
   const donation = await prisma.donation.findUnique({ where: { id }, include: { foodItem: true, donor: { select: { firstName: true, lastName: true, location: true } }, claimant: { select: { firstName: true, lastName: true } } } });
   if (!donation || (donation.status !== "AVAILABLE" && donation.donorId !== user.id && donation.claimantId !== user.id)) return NextResponse.json({ error: "Donation not found." }, { status: 404 });
   const approvedParticipant = donation.status === "APPROVED" && (donation.donorId === user.id || donation.claimantId === user.id);
@@ -12,8 +14,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = authenticateToken(req); if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 }); const { id } = await params; const { action } = await req.json();
+  await releaseExpiredDonationClaims();
+
+  // Claim atomically so two users cannot successfully request the same available donation.
+  if (action === "request") {
+    const claim = await prisma.donation.updateMany({
+      where: { id, status: "AVAILABLE", donorId: { not: user.id } },
+      data: { status: "REQUESTED", claimantId: user.id, claimedAt: new Date() },
+    });
+    if (claim.count === 0) {
+      return NextResponse.json({ error: "This donation is no longer available to claim." }, { status: 409 });
+    }
+    const claimedDonation = await prisma.donation.findUnique({ where: { id } });
+    if (claimedDonation) await prisma.notification.create({ data: { type: "donation", title: "Donation requested", message: "A receiver requested your donation. Review it in My Donations.", userId: claimedDonation.donorId } });
+    return NextResponse.json({ donation: claimedDonation, message: "Donation requested." });
+  }
+
   const donation = await prisma.donation.findUnique({ where: { id } }); if (!donation) return NextResponse.json({ error: "Donation not found." }, { status: 404 });
-  const receiverRequest = action === "request" && donation.status === "AVAILABLE" && donation.donorId !== user.id;
+  const receiverRequest = false;
   const donorApprove = action === "approve" && donation.status === "REQUESTED" && donation.donorId === user.id;
   const donorDecline = action === "decline" && donation.status === "REQUESTED" && donation.donorId === user.id;
   const receiverCancel = action === "cancel-request" && donation.status === "REQUESTED" && donation.claimantId === user.id;

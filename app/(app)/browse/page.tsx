@@ -149,7 +149,10 @@ export default function BrowseFoodPage() {
               />
             </div>
             <div className="flex items-center gap-4">
-              <p className="text-sm text-gray-500"><b className="text-gray-800">{viewMode === "map" ? filteredMapLocations.length : items.length}</b> {viewMode === "map" ? "map" : "published"} {(viewMode === "map" ? filteredMapLocations.length : items.length) === 1 ? "donation" : "donations"}</p>
+              <div className="text-right">
+                <p className="text-sm text-gray-500"><b className="text-gray-800">{viewMode === "map" ? filteredMapLocations.length : items.length}</b> {viewMode === "map" ? "map" : "published"} {(viewMode === "map" ? filteredMapLocations.length : items.length) === 1 ? "donation" : "donations"}</p>
+                <p className="text-[11px] text-gray-400">Only available listings can be claimed. Uncollected claims expire after 24 hours.</p>
+              </div>
               {/* Grid / Map Toggle */}
               <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
                 <button
@@ -240,7 +243,7 @@ export default function BrowseFoodPage() {
                       onClick={async () => { try { setSelected((await getDonation(donation.id)).donation); } catch (e: any) { setError(e.message); } }}
                       className="mt-1 h-9 w-full rounded-md border border-[#4CAF50]/40 text-sm font-medium text-[#2E7D32] transition hover:bg-[#E8F5E9]"
                     >
-                      Request food
+                      Claim item
                     </button>
                   </div>
                 </article>
