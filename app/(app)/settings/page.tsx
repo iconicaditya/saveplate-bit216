@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, User, Shield, Bell, Lock, Camera, Copy, Check, Smartphone, ShieldOff } from "lucide-react";
-import { setup2FA, verify2FA, disable2FA } from "@/lib/api";
+import { setup2FA, verify2FA, disable2FA, getPrivacySettings, savePrivacySettings } from "@/lib/api";
 
 type Tab = "profile" | "privacy" | "notifications" | "security";
 
@@ -16,6 +16,7 @@ const tabs: { id: Tab; icon: typeof User; label: string }[] = [
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [privacy, setPrivacy] = useState({ publicProfile: true, showDonations: true, marketingEmails: false, shareImpact: true });
   const [avatarSrc, setAvatarSrc] = useState("/aaditya-profile.jpg");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previousAvatarUrlRef = useRef<string | null>(null);
@@ -25,6 +26,23 @@ export default function SettingsPage() {
     notifications: null,
     security: null,
   });
+
+  useEffect(() => {
+    getPrivacySettings().then((response) => setPrivacy(response.settings)).catch(() => {});
+  }, []);
+
+  async function togglePrivacy(key: keyof typeof privacy) {
+    let nextState: typeof privacy;
+    setPrivacy((prev) => {
+      nextState = { ...prev, [key]: !prev[key] };
+      return nextState;
+    });
+    try {
+      await savePrivacySettings(nextState!);
+    } catch {
+      // Handled gracefully
+    }
+  }
 
   // IntersectionObserver to highlight the active section on scroll
   useEffect(() => {
@@ -302,27 +320,29 @@ export default function SettingsPage() {
           </div>
           <div className="px-6 pb-6 space-y-4">
             {[
-              { label: "Public Listings", desc: "Allow anyone to see your public donations.", checked: true },
-              { label: "Private Listings", desc: "Only allow approved members to see your donations.", checked: false },
-              { label: "Email Notifications", desc: "Receive updates via email.", checked: true },
-              { label: "Push Notifications", desc: "Receive mobile push notifications.", checked: true },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 last:pb-0">
+              { key: "publicProfile", label: "Public Profile", desc: "Allow other users to see your profile and activity." },
+              { key: "showDonations", label: "Show Donation History", desc: "Display your past donations on your public profile." },
+              { key: "marketingEmails", label: "Marketing Emails", desc: "Receive tips, recipes, and updates about food waste." },
+              { key: "shareImpact", label: "Share Impact Stats", desc: "Let others see your sustainability and savings statistics." },
+            ].map((item) => {
+              const key = item.key as keyof typeof privacy;
+              return <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 last:pb-0">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{item.label}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
                 </div>
                 {/* Toggle */}
-                <div
-                  className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors shrink-0 ${item.checked ? "bg-[#4CAF50]" : "bg-gray-200"}`}
+                <button
+                  type="button"
+                  onClick={() => togglePrivacy(key)}
+                  className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors shrink-0 ${privacy[key] ? "bg-[#4CAF50]" : "bg-gray-200"}`}
                   role="switch"
-                  aria-checked={item.checked}
-                  tabIndex={0}
+                  aria-checked={privacy[key]}
                 >
-                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all shadow-sm ${item.checked ? "right-1" : "left-1"}`} />
-                </div>
+                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all shadow-sm ${privacy[key] ? "right-1" : "left-1"}`} />
+                </button>
               </div>
-            ))}
+            })}
           </div>
         </section>
 

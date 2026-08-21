@@ -179,13 +179,12 @@ export default function TwoFactorSetupPage() {
           </form>
 
           <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={handleSkip}
-              className="text-sm text-gray-500 hover:text-gray-700 font-medium bg-transparent border-none p-0 cursor-pointer transition-colors"
+            <Link
+              href="/register/privacy"
+              className="text-sm text-gray-500 hover:text-gray-700 font-medium"
             >
               Skip for now
-            </button>
+            </Link>
           </div>
         </div>
       </div>

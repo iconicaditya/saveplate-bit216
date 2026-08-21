@@ -14,7 +14,7 @@ type AnalyticsData = {
   milestones: { title: string; description: string; current: number; target: number; progress: number }[];
 };
 
-const ranges = [{ value: "7d", label: "Last 7 days" }, { value: "30d", label: "Last 30 days" }, { value: "90d", label: "Last 90 days" }, { value: "12m", label: "Last 12 months" }];
+const ranges = [{ value: "7d", label: "Last 7 days" }, { value: "30d", label: "Last 30 days" }, { value: "90d", label: "Last 90 days" }, { value: "12m", label: "Last 12 months" }, { value: "custom", label: "Custom range" }];
 const colors = ["bg-[#4CAF50]", "bg-emerald-400", "bg-lime-500", "bg-amber-400", "bg-slate-400"];
 
 function Change({ value }: { value?: number | null }) {
@@ -26,6 +26,8 @@ function Change({ value }: { value?: number | null }) {
 export default function AnalyticsPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   const [range, setRange] = useState("30d");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const [category, setCategory] = useState("All");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,10 +35,11 @@ export default function AnalyticsPage() {
 
   const loadAnalytics = useCallback(async () => {
     setLoading(true); setError("");
-    try { setData(await getAnalytics({ range, category })); }
+    if (range === "custom" && (!customStart || !customEnd)) { setLoading(false); return; }
+    try { setData(await getAnalytics({ range, category, ...(range === "custom" ? { start: customStart, end: customEnd } : {}) })); }
     catch (err: any) { setError(err.message || "Unable to load your analytics."); }
     finally { setLoading(false); }
-  }, [range, category]);
+  }, [range, category, customStart, customEnd]);
 
   useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
   const categories = useMemo(() => ["All", ...(data?.categoryBreakdown.map(({ name }) => name) || [])], [data]);
@@ -105,6 +108,7 @@ export default function AnalyticsPage() {
            </div>
         )}
         <label className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"><Calendar className="h-4 w-4 text-gray-500" /><select aria-label="Reporting range" value={range} onChange={(event) => setRange(event.target.value)} className="bg-transparent outline-none">{ranges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+        {range === "custom" && <div className="flex flex-wrap gap-2"><label className="sr-only" htmlFor="analytics-start-date">Start date</label><input id="analytics-start-date" aria-label="Start date" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700" /><label className="sr-only" htmlFor="analytics-end-date">End date</label><input id="analytics-end-date" aria-label="End date" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700" /></div>}
         <label className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"><span className="sr-only">Category</span><select aria-label="Category" value={category} onChange={(event) => setCategory(event.target.value)} className="bg-transparent outline-none">{categories.map((item) => <option key={item} value={item}>{item === "All" ? "All categories" : item}</option>)}</select></label>
       </div>
     </div>

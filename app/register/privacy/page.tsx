@@ -34,11 +34,11 @@ export default function PrivacyOnboardingPage() {
     setIsLoading(true);
     try {
       await savePrivacySettings(preferences);
-      window.location.href = "/dashboard";
     } catch {
-      // Error handled silently - user can retry
+      // Ignore errors so user can proceed
     } finally {
       setIsLoading(false);
+      window.location.href = "/dashboard";
     }
   }
 

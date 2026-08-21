@@ -23,16 +23,27 @@ export async function GET(req: NextRequest) {
   const range = params.get("range") || "30d";
   const category = params.get("category") || "All";
   const overview = params.get("overview") === "true";
-  const days = RANGE_DAYS[range];
+  const customStart = params.get("start");
+  const customEnd = params.get("end");
+  let days = RANGE_DAYS[range];
 
-  if (!days) {
+  if (range === "custom" && customStart && customEnd) {
+    const startDate = new Date(`${customStart}T00:00:00`);
+    const endDate = new Date(`${customEnd}T23:59:59.999`);
+    days = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || days < 1 || days > 366) {
+      return NextResponse.json({ error: "Custom analytics dates must span 1 to 366 days." }, { status: 400 });
+    }
+  }
+
+  if (!days || (range === "custom" && (!customStart || !customEnd))) {
     return NextResponse.json({ error: "Unsupported analytics date range." }, { status: 400 });
   }
 
   try {
-    const end = new Date();
-    const start = startOfDay(new Date(end));
-    start.setDate(start.getDate() - (days - 1));
+    const end = range === "custom" ? new Date(`${customEnd}T23:59:59.999`) : new Date();
+    const start = range === "custom" ? new Date(`${customStart}T00:00:00`) : startOfDay(new Date(end));
+    if (range !== "custom") start.setDate(start.getDate() - (days - 1));
     const previousStart = new Date(start);
     previousStart.setDate(previousStart.getDate() - days);
     const previousEnd = new Date(start);
