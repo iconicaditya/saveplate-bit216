@@ -4,7 +4,7 @@ SavePlate is a full-stack web application built with **Next.js** that helps hous
 
 ## Group Assignment
 
-This project was developed as a collaborative **group assignment** for **BIT 301 IT Project Management**. The project is planned, built, and tested as a team, with each member responsible for a specific set of features and their corresponding test suites.
+This project was developed as a collaborative group assignment. The project is planned, built, and tested as a team, with each member responsible for a specific set of features and their corresponding test suites.
 
 ### Group Members
 
