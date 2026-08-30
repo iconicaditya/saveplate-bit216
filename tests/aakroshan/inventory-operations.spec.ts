@@ -1,24 +1,38 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
+
+type TestAccount = { id: string; token: string; email: string };
+let accountSequence = 0;
+
+async function createAccount(request: APIRequestContext, prefix: string): Promise<TestAccount> {
+  accountSequence += 1;
+  const email = `${prefix}-${Date.now()}-${accountSequence}@example.com`;
+  const response = await request.post('/api/auth/register', {
+    data: {
+      firstName: prefix,
+      lastName: 'Tester',
+      email,
+      password: 'Password123!',
+      householdSize: '2',
+      location: 'New York, NY',
+    },
+  });
+
+  expect(response.status()).toBe(201);
+  const body = await response.json();
+  return { id: body.user.id, token: body.token, email };
+}
+
+async function authenticatePage(page: Page, account: TestAccount) {
+  await page.addInitScript(({ token, email, id }) => {
+    localStorage.setItem('saveplate_token', token);
+    localStorage.setItem('saveplate_user', JSON.stringify({ id, email, firstName: 'Playwright', lastName: 'Tester' }));
+  }, account);
+}
 
 test.describe('Aakroshan Chaudhary (E2300551) - UC2 & UC5', () => {
-test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category', async ({ page }) => {
-    const invUser = `inv_${Date.now()}@example.com`;
-    // Register & Login quick helper
-    await page.goto('/register');
-    await page.fill('input[name="firstName"]', 'Inv');
-    await page.fill('input[name="lastName"]', 'User');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'Password123!');
-    await page.selectOption('select[name="householdSize"]', '1');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*\/register\/.*/);
-
-    await page.goto('/login');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+  test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category', async ({ page, request }) => {
+    const account = await createAccount(request, 'aak-barcode');
+    await authenticatePage(page, account);
 
     await page.goto('/inventory');
     await page.click('button:has-text("Add Food Item")');
@@ -32,25 +46,12 @@ test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category
     await expect(nameInput).toHaveValue('Fresh Apples');
 
     const produceBtn = page.locator('button:has-text("Produce")');
-    await expect(produceBtn).toHaveClass(/bg-\[#4CAF50\]/); // it should be highlighted/selected
+    await expect(produceBtn).toHaveClass(/bg-\[#4CAF50\]/);
   });
 
-  test('TC-34: Enter unknown barcode 000000 -> Displays error message', async ({ page }) => {
-    const invUser = `inv2_${Date.now()}@example.com`;
-    await page.goto('/register');
-    await page.fill('input[name="firstName"]', 'Inv2');
-    await page.fill('input[name="lastName"]', 'User');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'Password123!');
-    await page.selectOption('select[name="householdSize"]', '1');
-    await page.click('button[type="submit"]');
-
-    await page.goto('/login');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+  test('TC-34: Enter unknown barcode 000000 -> Displays error message', async ({ page, request }) => {
+    const account = await createAccount(request, 'aak-unknown-barcode');
+    await authenticatePage(page, account);
 
     await page.goto('/inventory');
     await page.click('button:has-text("Add Food Item")');
@@ -63,22 +64,9 @@ test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category
     await expect(page.locator('text=Barcode not found. Try one of the suggested sample codes.')).toBeVisible();
   });
 
-  test('TC-35: System detects items expiring in <= 2 days -> Displays toast banner', async ({ page }) => {
-    const invUser = `inv3_${Date.now()}@example.com`;
-    await page.goto('/register');
-    await page.fill('input[name="firstName"]', 'Inv3');
-    await page.fill('input[name="lastName"]', 'User');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'Password123!');
-    await page.selectOption('select[name="householdSize"]', '1');
-    await page.click('button[type="submit"]');
-
-    await page.goto('/login');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+  test('TC-35: System detects items expiring in <= 2 days -> Displays toast banner', async ({ page, request }) => {
+    const account = await createAccount(request, 'aak-expiry');
+    await authenticatePage(page, account);
 
     await page.goto('/inventory');
 
@@ -96,7 +84,7 @@ test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category
 
     // Wait for the modal to close and table to refresh
     await expect(page.locator('text=Food item added successfully!')).toBeVisible();
-    await page.waitForTimeout(1500); // Give time for modal close and refetch
+    await page.waitForTimeout(1500);
 
     // Reload the page to trigger the check
     await page.reload();
@@ -106,25 +94,12 @@ test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category
   });
 
   test('TC-36: Select inventory items and delete the selected rows', async ({ page, request }) => {
-    const invUser = `batch-ui-${Date.now()}@example.com`;
-    await page.goto('/register');
-    await page.fill('input[name="firstName"]', 'Batch');
-    await page.fill('input[name="lastName"]', 'User');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'Password123!');
-    await page.selectOption('select[name="householdSize"]', '1');
-    await page.click('button[type="submit"]');
-    await page.goto('/login');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+    const account = await createAccount(request, 'aak-batch-ui');
+    await authenticatePage(page, account);
 
-    const token = await page.evaluate(() => localStorage.getItem('saveplate_token'));
     for (const name of ['Batch Item 1', 'Batch Item 2', 'Batch Item 3']) {
       const response = await request.post('/api/inventory', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${account.token}` },
         data: { name, category: 'Produce', quantity: '1', unit: 'items', expiryDate: new Date(Date.now() + 86400000 * 5).toISOString(), storage: 'Fridge' },
       });
       expect(response.status()).toBe(201);
@@ -139,27 +114,13 @@ test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category
     await expect(page.getByText('No food items found. Add your first item!')).toBeVisible();
   });
 
-  test('TC-37: Delete an array of items through the batch API and receive HTTP 200', async ({ page, request }) => {
-    const invUser = `batch-api-${Date.now()}@example.com`;
-    await page.goto('/register');
-    await page.fill('input[name="firstName"]', 'Batch');
-    await page.fill('input[name="lastName"]', 'API');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'Password123!');
-    await page.selectOption('select[name="householdSize"]', '1');
-    await page.click('button[type="submit"]');
-    await page.goto('/login');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+  test('TC-37: Delete an array of items through the batch API and receive HTTP 200', async ({ request }) => {
+    const account = await createAccount(request, 'aak-batch-api');
 
-    const token = await page.evaluate(() => localStorage.getItem('saveplate_token'));
     const ids: string[] = [];
     for (const name of ['Batch API Item 1', 'Batch API Item 2']) {
       const response = await request.post('/api/inventory', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${account.token}` },
         data: { name, category: 'Produce', quantity: '1', unit: 'items', expiryDate: new Date(Date.now() + 86400000 * 5).toISOString(), storage: 'Fridge' },
       });
       expect(response.status()).toBe(201);
@@ -167,29 +128,16 @@ test('TC-33: Enter valid barcode 890123 -> Auto-Fill -> Populates Title/Category
     }
 
     const batchResponse = await request.delete('/api/inventory/batch', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${account.token}` },
       data: { ids },
     });
     expect(batchResponse.status()).toBe(200);
     expect((await batchResponse.json()).deletedCount).toBe(2);
   });
 
-  test('TC-38: Regression check: Click "Convert to Donation"', async ({ page }) => {
-    const invUser = `inv5_${Date.now()}@example.com`;
-    await page.goto('/register');
-    await page.fill('input[name="firstName"]', 'Inv5');
-    await page.fill('input[name="lastName"]', 'User');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.fill('input[name="confirmPassword"]', 'Password123!');
-    await page.selectOption('select[name="householdSize"]', '1');
-    await page.click('button[type="submit"]');
-
-    await page.goto('/login');
-    await page.fill('input[name="email"]', invUser);
-    await page.fill('input[name="password"]', 'Password123!');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard');
+  test('TC-38: Regression check: Click "Convert to Donation"', async ({ page, request }) => {
+    const account = await createAccount(request, 'aak-donate');
+    await authenticatePage(page, account);
 
     await page.goto('/inventory');
 
